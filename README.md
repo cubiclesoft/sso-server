@@ -25,6 +25,10 @@ Documentation, examples, and official downloads of this project sit on the Bareb
 
 http://barebonescms.com/documentation/sso/
 
+Quick start video tutorials:
+
+https://www.youtube.com/watch?v=xjPp_YVGttw&list=PLIvucSFZRDjgiSfsm707zn-bqKd64Eikb
+
 SSO Clients
 -----------
 
