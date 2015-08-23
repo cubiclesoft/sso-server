@@ -1,0 +1,75 @@
+html {
+	height: auto;
+}
+
+body {
+	height: auto;
+	min-width: 0;
+	overflow: visible;
+}
+
+div.contentwrap div.colmask {
+	position: static;
+	float: none;
+	width: 100%;
+	overflow: visible;
+	background-color: #FFFFFF;  /* Left-column background color. */
+}
+
+div.contentwrap div.colmask div.colright {
+	float: none;
+	width: 100%;
+	position: static;
+	left: auto;  /* Left-column width. */
+	background-color: #FFFFFF;  /* Right-column background color. */
+	border-left: 0 none;
+}
+
+div.contentwrap div.colmask div.colright div.col1wrap {
+	float: none;
+	width: 100%;
+	position: static;
+	right: auto;
+}
+
+div.contentwrap div.colmask div.colright div.col1wrap div.col1 {
+	position: static;
+	width: 100%;
+	overflow: visible;
+}
+
+div.contentwrap div.colmask div.colright div.col1wrap div.col1inner {
+	position: static;
+	margin-right: 0;  /* Left-column width. */
+}
+
+div.contentwrap div.colmask div.colright div.col2 {
+	display: none;
+}
+
+div.stickycol {
+	display: none;
+}
+
+div.maincontent {
+	position: static;
+	margin: 5px 10px 15px 10px;
+	padding: 0;
+	background-color: #FFFFFF;
+	border: 0 none;
+}
+
+div.maincontent div.proptitle div.navbutton {
+	display: none;
+}
+
+div.maincontent div.propmain div.formfields {
+	border: 0 none;
+	background-color: #FFFFFF;
+	padding-left: 0;
+	padding-right: 0;
+}
+
+div.maincontent div.propmain div.alt {
+	background-color: #FFFFFF;
+}

@@ -1,0 +1,265 @@
+/*
+	A simple layout for the SSO server.
+	(C) 2014 Cubiclesoft.  All Rights Reserved.
+	The message icons are from the FamFamFam Silk set (http://www.famfamfam.com/lab/icons/silk/)
+	The social media selector icons are used in good faith.
+	SSO Generic Login icon is (C) CubicleSoft.
+*/
+
+body {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+
+div.sso_server_message_wrap {
+	max-width: 600px;
+	overflow: hidden;
+	padding: 0.5em 0 0.8em 0.7em;
+	border-bottom: 1px dashed #CCCCCC;
+	margin: 0 auto 0.8em;
+}
+
+div.sso_server_message_wrap_nosplit {
+	border-bottom: none;
+	margin: 0 auto;
+}
+
+div.sso_server_message_wrap div.sso_server_error {
+	background: url('error.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_server_message_wrap div.sso_server_warning {
+	background: url('warn.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_selector_wrap {
+	max-width: 600px;
+	margin: 0 auto;
+	overflow: hidden;
+}
+
+div.sso_selector_wrap div.sso_selector_wrap_inner {
+	margin: 3px;
+}
+
+div.sso_selector_wrap div.sso_selector_header {
+	font-size: 1.3em;
+	font-weight: bold;
+	color: #333333;
+}
+
+div.sso_selector_wrap div.sso_selectors {
+	margin-top: 0.7em;
+}
+
+div.sso_selector_wrap div.sso_selector {
+	margin: 0.8em 1px 1px 1px;
+}
+
+div.sso_selector_wrap div.sso_selector a, div.sso_selector_wrap div.sso_selector a:visited, div.sso_selector_wrap div.sso_selector a:link {
+	display: block;
+	border: 0 none;
+	border-radius: 3px;
+	padding: 21px 6px 21px 66px;
+	color: #333333;
+	text-decoration: none;
+	background-repeat: no-repeat;
+	background-position: 6px 6px;
+}
+
+div.sso_selector_wrap div.sso_selector a:hover {
+	border: 1px solid #CCCCCC;
+	padding: 20px 5px 20px 65px;
+	background-color: #F8F8F8;
+	background-position: 5px 5px;
+}
+
+div.sso_selector_wrap div.sso_selector a:active {
+	border: 1px solid #C1C1C1;
+	padding: 21px 4px 19px 66px;
+	background-color: #F1F1F1;
+	background-position: 6px 6px;
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_login {
+	background-image: url('sso_login.png');
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_facebook {
+	background-image: url('sso_facebook.png');
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_google {
+	background-image: url('sso_google.png');
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_linkedin {
+	background-image: url('sso_linkedin.png');
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_ldap {
+	background-image: url('sso_ldap.png');
+}
+
+div.sso_selector_wrap div.sso_selector a.sso_remote {
+	background-image: url('sso_remote.png');
+}
+
+div.sso_main_wrap {
+	max-width: 600px;
+	margin: 0 auto;
+	overflow: hidden;
+}
+
+div.sso_main_wrap div.sso_main_wrap_inner {
+	margin: 3px;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap {
+	padding-bottom: 0.8em;
+	border-bottom: 1px dashed #CCCCCC;
+	margin-bottom: 0.8em;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap div.sso_main_messages_header {
+	font-weight: bold;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap div.sso_main_messages {
+	margin: 0.5em 0 0 0.7em;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap div.sso_main_messages div.sso_main_messageerror {
+	background: url('error.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap div.sso_main_messages div.sso_main_messagewarning {
+	background: url('warn.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap div.sso_main_messages_wrap div.sso_main_messages div.sso_main_messageokay {
+	background: url('ok.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap div.sso_main_info {
+}
+
+div.sso_main_wrap div.sso_main_form_wrap {
+	margin-top: 0.7em;
+}
+
+div.sso_main_wrap div.sso_main_form_header {
+	font-size: 1.3em;
+	font-weight: bold;
+	color: #333333;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem {
+	margin-top: 0.8em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formtitle {
+	color: #222222;
+	margin-bottom: 0.2em;
+	font-weight: bold;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata input.sso_main_text {
+	width: 95%;
+	font-size: 0.9em;
+	padding: 0.3em;
+	border: 1px solid #BBBBBB;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata input.sso_main_text:focus {
+	border: 1px solid #888888;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata input.sso_main_text:hover {
+	border: 1px solid #888888;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata select.sso_main_dropdown {
+	width: 97%;
+	font-size: 0.9em;
+	border: 1px solid #BBBBBB;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata select.sso_main_dropdown:focus {
+	border: 1px solid #888888;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata select.sso_main_dropdown:hover {
+	border: 1px solid #888888;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdata div.sso_main_static {
+	margin-left: 0.5em;
+	font-size: 0.9em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formdesc {
+	color: #333333;
+	margin-bottom: 0.2em;
+	margin-left: 0.5em;
+	font-size: 0.9em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formshowhide {
+	margin-top: 0.2em;
+	margin-left: 0.5em;
+	font-size: 0.8em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formtwofactorreset {
+	margin-top: 0.2em;
+	margin-left: 0.5em;
+	font-size: 0.8em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formresult {
+	margin-left: 0.5em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formresult div.sso_main_formchecking {
+	background: url('wait.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formresult div.sso_main_formerror {
+	background: url('error.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formresult div.sso_main_formwarning {
+	background: url('warn.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formitem div.sso_main_formresult div.sso_main_formokay {
+	background: url('ok.png') 0 0.1em no-repeat;
+	padding-left: 25px;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formsubmit {
+	margin-top: 1.2em;
+}
+
+div.sso_main_wrap form.sso_main_form div.sso_main_formsubmit input {
+	padding: 0.2em 0.5em;
+	font-weight: bold;
+	font-size: 1.0em;
+	color: #1F1F1F;
+}
+
+div.sso_main_wrap div.sso_login_recover_changeinfo {
+	margin-top: 1.5em;
+	font-size: 0.8em;
+}
+
+div.sso_has_js { display: block; }
+div.sso_no_js { display: none; }

@@ -1,0 +1,171 @@
+body {
+	background: #FFFFFF none repeat scroll 0 0;
+	color: #000000;
+	margin: 0;
+}
+
+img {
+	border: 0px none;
+	margin: 0px;
+}
+
+form {
+	border: 0px none;
+	margin: 0px;
+}
+
+a {
+	color: #035488;
+	text-decoration: none;
+}
+
+a:hover {
+	color: #444444;
+	text-decoration: underline;
+}
+
+#main {
+	width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+div.box {
+	margin-top: 5px;
+	margin-bottom: 15px;
+	width: 600px;
+	background-color: #F1F1F1;
+	border: 1px solid black;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+
+div.box h1 {
+	text-align: center;
+	font-size: 1.5em;
+	width: 100%;
+	color: #322F34;
+	background-color: #B7CDE0;
+	margin: 0;
+	border-bottom: 1px dashed #322F34;
+	border-top-right-radius: 3px;
+	border-top-left-radius: 3px;
+	-moz-border-radius-topleft: 3px;
+	-moz-border-radius-topright: 3px;
+	-webkit-border-top-right-radius: 3px;
+	-webkit-border-top-left-radius: 3px;
+}
+
+div.box h3 {
+	margin:  5px 5px 15px 5px;
+	color: #666666;
+	font-size: 1.2em;
+}
+
+div.box div.boxmain {
+	margin: 15px 15px 15px 30px;
+	font-size: 0.9em;
+}
+
+div.indent {
+	font-size: 1.2em;
+	font-style: italic;
+	margin-left: 30px;
+}
+
+div.box div.boxbuttons {
+	font-size: 1.3em;
+	font-weight: bold;
+	text-align: right;
+	margin: 5px 15px 10px 0px;
+}
+
+table {
+	border: 1px solid #E5E5E5;
+}
+
+td, th {
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
+tr.head {
+	background-color: #CFD6DD;
+}
+
+tr.row {
+	background-color: #EFEFEF;
+}
+
+tr.altrow {
+	background-color: #ECECEC;
+}
+
+tr.row td {
+	vertical-align: top;
+}
+
+.success {
+	color: #008800;
+	font-weight: bold;
+}
+
+.error {
+	color: #880000;
+	font-weight: bold;
+}
+
+div.formfields {
+	border: 1px solid #E5E5E5;
+	background-color: #F5F5F5;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+div.formfields div.formitem {
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+div.formfields div.formitem div.formitemtitle {
+	font-weight: bold;
+	margin-bottom: 2px;
+}
+
+div.formfields div.formitem input.text {
+	margin-left: 7px;
+	width: 95%;
+	border: 1px solid #C5C5C5;
+}
+
+div.formfields div.formitem input.checkbox {
+	margin-left: 7px;
+	border: 1px solid #C5C5C5;
+}
+
+div.formfields div.formitem input.submit {
+	margin-top: 15px;
+	margin-left: 225px;
+	background-color: #FFFFFF;
+	border: 2px solid #A5A5A5;
+}
+
+div.formfields div.formitem select {
+	margin-left: 7px;
+	width: 95%;
+	border: 1px solid #C5C5C5;
+}
+
+div.formfields div.formitem div.formitemdesc {
+	margin-left: 15px;
+	font-size: 0.9em;
+}
+
+div.testresult {
+	margin-left: 25px;
+	margin-right: 25px;
+	border: 1px solid #C5C5C5;
+	padding: 5px;
+	display: none;
+}
