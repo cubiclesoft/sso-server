@@ -19,7 +19,7 @@
 
 	// Only allow secure database products to be used except on localhost by default.
 	// Can be overridden with an installation hook BUT please know exactly what you are doing before doing so.
-	$allowinsecuredatabases = ($_SERVER["REMOTE_ADDR"] == "127.0.0.1");
+	$allowinsecuredatabases = ($_SERVER["REMOTE_ADDR"] == "127.0.0.1" || $_SERVER["REMOTE_ADDR"] == "::1");
 
 	// Allow developers to inject code here.  For example, IP address restriction logic or a SSO bypass.
 	if (file_exists("install_hook.php"))  require_once "install_hook.php";
@@ -694,7 +694,7 @@ EOF;
 					"id" => array("INTEGER", 8, "UNSIGNED" => true, "NOT NULL" => true, "PRIMARY KEY" => true, "AUTO INCREMENT" => true),
 					"ipaddr" => array("STRING", 1, 50, "NOT NULL" => true),
 					"created" => array("DATETIME", "NOT NULL" => true),
-					"info" => array("STRING", 2, "NOT NULL" => true),
+					"info" => array("STRING", 3, "NOT NULL" => true),
 				),
 				array(
 					array("UNIQUE", array("ipaddr"), "NAME" => $sso_db_ipcache . "_ipaddr"),

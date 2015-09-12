@@ -41,7 +41,7 @@
 			echo "<div class=\"sso_server_message_wrap" . ($htmlmsg == "" ? " sso_server_message_wrap_nosplit" : "") . "\"><div class=\"sso_server_error\">" . htmlspecialchars(BB_Translate($msg)) . "</div></div>";
 			echo $htmlmsg;
 
-			if (isset($_COOKIE["sso_server_lastapp"]))
+			if (isset($_COOKIE["sso_server_lastapp"]) && $_COOKIE["sso_server_lastapp"] !== "")
 			{
 				$url = @base64_decode($_COOKIE["sso_server_lastapp"]);
 				if ($url !== false)
