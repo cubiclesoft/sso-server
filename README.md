@@ -33,11 +33,14 @@ SSO Clients
 -----------
 
 PHP:  https://github.com/cubiclesoft/sso-client-php
+
 ASP.NET (C#):  https://github.com/cubiclesoft/sso-client-aspnet
 
 Related Projects
 ----------------
 
 Native app framework/API:  https://github.com/cubiclesoft/sso-native-apps
+
 Disqus provider:  https://github.com/khachin/sso-disqus-provider
+
 MyBB plugin (direct download):  http://barebonescms.com/MyBB_SSOClient-2.4.zip
