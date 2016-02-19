@@ -89,7 +89,7 @@
 		$result = array(
 			"mysql" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "host=localhost"),
 			"pgsql" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "host=localhost"),
-			"oci" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "dbname=//localhost/ORCL"),
+			"oci" => array("production" => false, "login" => true, "replication" => true, "default_dsn" => "dbname=//localhost/ORCL"),
 			"sqlite" => array("production" => false, "login" => false, "replication" => false, "default_dsn" => "@PATH@/sqlite_@RANDOM@.db")
 		);
 
