@@ -87,7 +87,16 @@
 		{
 		}
 
+		public function IsPasswordBypassAllowed()
+		{
+			return false;
+		}
+
 		public function LoginCheck(&$result, $userinfo, $recoveryallowed)
+		{
+		}
+
+		public function AlternateLogin()
 		{
 		}
 
@@ -2687,7 +2696,7 @@ SSO_Vars = {
 						$methods = array();
 						foreach ($this->activemodules as $key => &$instance)
 						{
-							$name = $instance->GetTwoFactorName(false);
+							$name = $instance->GetTwoFactorName();
 							if ($name !== false)  $methods[$key] = $name;
 						}
 
@@ -2844,7 +2853,12 @@ SSO_Vars = {
 					$messages = array("errors" => array(), "warnings" => array(), "success" => "");
 					$user = SSO_FrontendFieldValue("user");
 					$password = SSO_FrontendFieldValue("password");
-					if ($user === false || $user == "" || $password === false || $password == "")  $messages["errors"][] = BB_Translate("Please fill in the fields.");
+					$passwordbypass = false;
+					foreach ($this->activemodules as &$instance)
+					{
+						if ($instance->IsPasswordBypassAllowed())  $passwordbypass = true;
+					}
+					if ($user === false || $user == "" || (!$passwordbypass && ($password === false || $password == "")))  $messages["errors"][] = BB_Translate("Please fill in the fields.");
 					else
 					{
 						$recoveryallowed = $this->IsRecoveryAllowed(false);
@@ -2874,7 +2888,7 @@ SSO_Vars = {
 										{
 											if (!isset($userrow->username))  $userrow->username = "";
 											$data = $userrow->username . ":" . $userrow->email . ":" . $userinfo["salt"] . ":" . $password;
-											if (!self::VerifyPasswordInfo($data, $userinfo["password"], $userinfo["rounds"]))  $userrow = false;
+											if (!$passwordbypass && !self::VerifyPasswordInfo($data, $userinfo["password"], $userinfo["rounds"]))  $userrow = false;
 										}
 									}
 								}
@@ -2904,7 +2918,7 @@ SSO_Vars = {
 											if (!isset($userrow->email))  $userrow->email = "";
 											if (!isset($userrow->verified))  $userrow->verified = 1;
 											$data = $userrow->username . ":" . $userrow->email . ":" . $userinfo["salt"] . ":" . $password;
-											if (!self::VerifyPasswordInfo($data, $userinfo["password"], $userinfo["rounds"]))  $userrow = false;
+											if (!$passwordbypass && !self::VerifyPasswordInfo($data, $userinfo["password"], $userinfo["rounds"]))  $userrow = false;
 										}
 									}
 								}
@@ -2951,14 +2965,6 @@ SSO_Vars = {
 
 							if (!count($messages["errors"]))
 							{
-								// Go to two-factor authentication page.
-								$methods = array();
-								foreach ($this->activemodules as $key => &$instance)
-								{
-									$name = $instance->GetTwoFactorName(false);
-									if ($name !== false)  $methods[$key] = true;
-								}
-
 								// Resend the verification e-mail.
 								if (!$userrow->verified)  $this->SendVerificationEmail($userrow->id, $userinfo, $messages, $userrow->username, $userrow->email);
 								else if (!$recoveryallowed && SSO_FrontendFieldValue("update_info", "") == "yes")
@@ -2977,69 +2983,86 @@ SSO_Vars = {
 										exit();
 									}
 								}
-								else if ($sso_settings["sso_login"]["require_two_factor"] || (isset($userinfo["two_factor_method"]) && $userinfo["two_factor_method"] != "" && (count($methods) || ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email"))))
+								else
 								{
-									if ($sso_settings["sso_login"]["require_two_factor"] && (!isset($userinfo["two_factor_method"]) || !isset($methods[$userinfo["two_factor_method"]])))
+									// Optional bypass for two-factor authentication and normal login.
+									foreach ($this->activemodules as $key => &$instance)
 									{
-										$messages["errors"][] = BB_Translate("A valid two-factor authentication method for this account is not available.  Use account recovery to restore access to the account.");
+										$instance->AlternateLogin();
 									}
-									else
-									{
-										$sso_session_info["sso_login_two_factor"] = array(
-											"id" => $userrow->id,
-											"v" => $sso_rng->GenerateString(),
-											"expires" => CSDB::ConvertToDBTime(time() + 5 * 60)
-										);
 
-										if (!SSO_SaveSessionInfo())  $messages["errors"][] = BB_Translate("Login exists but a fatal error occurred.  Fatal error:  Unable to save session information.");
+									// Go to two-factor authentication page.
+									$methods = array();
+									foreach ($this->activemodules as $key => &$instance)
+									{
+										$name = $instance->GetTwoFactorName();
+										if ($name !== false)  $methods[$key] = true;
+									}
+
+									if ($sso_settings["sso_login"]["require_two_factor"] || (isset($userinfo["two_factor_method"]) && $userinfo["two_factor_method"] != "" && (count($methods) || ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email"))))
+									{
+										if ($sso_settings["sso_login"]["require_two_factor"] && (!isset($userinfo["two_factor_method"]) || !isset($methods[$userinfo["two_factor_method"]])))
+										{
+											$messages["errors"][] = BB_Translate("A valid two-factor authentication method for this account is not available.  Use account recovery to restore access to the account.");
+										}
 										else
 										{
-											$this->activemodules[$userinfo["two_factor_method"]]->SendTwoFactorCode($messages, $userrow, $userinfo);
+											$sso_session_info["sso_login_two_factor"] = array(
+												"id" => $userrow->id,
+												"v" => $sso_rng->GenerateString(),
+												"expires" => CSDB::ConvertToDBTime(time() + 5 * 60)
+											);
 
-											if (!count($messages["errors"]))
+											if (!SSO_SaveSessionInfo())  $messages["errors"][] = BB_Translate("Login exists but a fatal error occurred.  Fatal error:  Unable to save session information.");
+											else
 											{
-												header("Location: " . BB_GetRequestHost() . $sso_target_url . "&sso_login_action=two_factor&sso_v=" . urlencode($sso_session_info["sso_login_two_factor"]["v"]));
-												exit();
+												$this->activemodules[$userinfo["two_factor_method"]]->SendTwoFactorCode($messages, $userrow, $userinfo);
+
+												if (!count($messages["errors"]))
+												{
+													header("Location: " . BB_GetRequestHost() . $sso_target_url . "&sso_login_action=two_factor&sso_v=" . urlencode($sso_session_info["sso_login_two_factor"]["v"]));
+													exit();
+												}
 											}
 										}
 									}
-								}
-								else
-								{
-									// Login succeeded.  Activate the user.
-									$mapinfo = array();
-									if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email")  $mapinfo[$sso_settings["sso_login"]["map_email"]] = $userrow->email;
-									if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "username")  $mapinfo[$sso_settings["sso_login"]["map_username"]] = $userrow->username;
-
-									$origuserinfo = $userinfo;
-									foreach ($this->activemodules as &$instance)
+									else
 									{
-										$instance->LoginAddMap($mapinfo, $userrow, $userinfo, false);
-									}
+										// Login succeeded.  Activate the user.
+										$mapinfo = array();
+										if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email")  $mapinfo[$sso_settings["sso_login"]["map_email"]] = $userrow->email;
+										if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "username")  $mapinfo[$sso_settings["sso_login"]["map_username"]] = $userrow->username;
 
-									// If a module updated $userinfo, then update the database.
-									if (serialize($userinfo) !== serialize($origuserinfo))
-									{
-										$userinfo2 = SSO_EncryptDBData($userinfo);
-
-										try
+										$origuserinfo = $userinfo;
+										foreach ($this->activemodules as &$instance)
 										{
-											$sso_db->Query("UPDATE", array($sso_db_sso_login_users, array(
-												"info" => $userinfo2,
-											), "WHERE" => "id = ?"), $userrow->id);
+											$instance->LoginAddMap($mapinfo, $userrow, $userinfo, false);
 										}
-										catch (Exception $e)
+
+										// If a module updated $userinfo, then update the database.
+										if (serialize($userinfo) !== serialize($origuserinfo))
 										{
-											$messages["errors"][] = BB_Translate("Database query error.");
+											$userinfo2 = SSO_EncryptDBData($userinfo);
+
+											try
+											{
+												$sso_db->Query("UPDATE", array($sso_db_sso_login_users, array(
+													"info" => $userinfo2,
+												), "WHERE" => "id = ?"), $userrow->id);
+											}
+											catch (Exception $e)
+											{
+												$messages["errors"][] = BB_Translate("Database query error.");
+											}
 										}
-									}
 
-									if (!count($messages["errors"]))
-									{
-										SSO_ActivateUser($userrow->id, $userinfo["extra"], $mapinfo, CSDB::ConvertFromDBTime($userrow->created));
+										if (!count($messages["errors"]))
+										{
+											SSO_ActivateUser($userrow->id, $userinfo["extra"], $mapinfo, CSDB::ConvertFromDBTime($userrow->created));
 
-										// Only falls through on account lockout or a fatal error.
-										$messages["errors"][] = BB_Translate("User activation failed.");
+											// Only falls through on account lockout or a fatal error.
+											$messages["errors"][] = BB_Translate("User activation failed.");
+										}
 									}
 								}
 							}
