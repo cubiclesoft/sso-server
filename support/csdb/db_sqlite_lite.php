@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft SQLite lightweight database interface.
-	// (C) 2013 CubicleSoft.  All Rights Reserved.
+	// (C) 2015 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB"))  exit();
 
@@ -59,7 +59,9 @@
 					$supported = array(
 						"DBPREFIX" => $this->dbprefix,
 						"PREINTO" => array("LOW_PRIORITY" => "bool", "DELAYED" => "bool", "HIGH_PRIORITY" => "bool", "IGNORE" => "bool"),
-						"SELECT" => true
+						"SELECT" => true,
+						"BULKINSERT" => true,
+						"BULKINSERTLIMIT" => 900,
 					);
 
 					return $this->ProcessINSERT($master, $sql, $opts, $queryinfo, $args, $subquery, $supported);

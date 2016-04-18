@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft SQLite database interface.
-	// (C) 2013 CubicleSoft.  All Rights Reserved.
+	// (C) 2015 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB"))  exit();
 
@@ -69,7 +69,9 @@
 					$supported = array(
 						"DBPREFIX" => $this->dbprefix,
 						"PREINTO" => array("LOW_PRIORITY" => "bool", "DELAYED" => "bool", "HIGH_PRIORITY" => "bool", "IGNORE" => "bool"),
-						"SELECT" => true
+						"SELECT" => true,
+						"BULKINSERT" => true,
+						"BULKINSERTLIMIT" => 900,
 					);
 
 					return $this->ProcessINSERT($master, $sql, $opts, $queryinfo, $args, $subquery, $supported);
@@ -284,6 +286,41 @@
 					$opts = array($this->dbprefix . $queryinfo[0]);
 
 					return array("success" => true, "filter_opts" => array("mode" => "SHOW CREATE TABLE", "output" => false, "queryinfo" => $queryinfo, "hints" => (isset($queryinfo["EXPORT HINTS"]) ? $queryinfo["EXPORT HINTS"] : array())));
+				}
+				case "BULK IMPORT MODE":
+				{
+					$master = true;
+
+					if ($queryinfo)
+					{
+						$sql = array(
+							"PRAGMA synchronous=OFF",
+							"PRAGMA journal_mode=MEMORY",
+							"PRAGMA temp_store=MEMORY",
+						);
+
+						$opts = array(
+							array(),
+							array(),
+							array(),
+						);
+					}
+					else
+					{
+						$sql = array(
+							"PRAGMA synchronous=NORMAL",
+							"PRAGMA journal_mode=DELETE",
+							"PRAGMA temp_store=DEFAULT",
+						);
+
+						$opts = array(
+							array(),
+							array(),
+							array(),
+						);
+					}
+
+					return array("success" => true);
 				}
 			}
 

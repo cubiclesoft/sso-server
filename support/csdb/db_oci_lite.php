@@ -81,7 +81,7 @@
 
 		public function QuoteIdentifier($str)
 		{
-			return "" . str_replace(array("\"", "?"), array("\"\"", ""), $str) . "";
+			return preg_replace('/[^A-Za-z0-9_]/', "_", $str);
 		}
 
 		// This function is used to get the last inserted sequence value by table name.
@@ -146,10 +146,21 @@
 						"PREINTO" => array(),
 						"POSTVALUES" => array("RETURNING" => "key_identifier"),
 						"SELECT" => true,
+						"BULKINSERT" => false
 					);
 
 					$result = $this->ProcessINSERT($master, $sql, $opts, $queryinfo, $args, $subquery, $supported);
 					if ($result["success"] && isset($queryinfo["AUTO INCREMENT"]))  $result["filter_opts"] = array("mode" => "INSERT", "queryinfo" => $queryinfo);
+
+					// Handle bulk insert by rewriting the queries because, well, Oracle.
+					// http://stackoverflow.com/questions/39576/best-way-to-do-multi-row-insert-in-oracle
+					if ($result["success"] && is_array($sql))
+					{
+						$sql2 = "INSERT ALL";
+						foreach ($sql as $entry)  $sql2 .= substr($entry, 6);
+						$sql2 .= " SELECT 1 FROM DUAL";
+						$sql = $sql2;
+					}
 
 					return $result;
 				}

@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PostgreSQL database interface.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2015 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB"))  exit();
 
@@ -62,6 +62,7 @@
 						"PREINTO" => array(),
 						"POSTVALUES" => array("RETURNING" => "key_identifier"),
 						"SELECT" => true,
+						"BULKINSERT" => true
 					);
 
 					// To get the last insert ID via GetInsertID(), the field that contains a 'serial' (auto increment) field must be specified.

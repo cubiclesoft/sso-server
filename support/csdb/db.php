@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft generic database base class.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2015 CubicleSoft.  All Rights Reserved.
 
 	class CSDB
 	{
@@ -272,6 +272,10 @@
 			return false;
 		}
 
+		public function LargeResults($enable)
+		{
+		}
+
 		public function NumQueries()
 		{
 			return $this->numqueries;
@@ -287,7 +291,8 @@
 		{
 			$startts = microtime(true);
 
-			$cmd = strtoupper(array_shift($params));
+			$cmd = array_shift($params);
+			if ($cmd !== false)  $cmd = strtoupper($cmd);
 			$queryinfo = array_shift($params);
 			if (count($params) == 1 && is_array($params[0]))  $params = $params[0];
 
@@ -296,6 +301,7 @@
 				$master = true;
 				$sqls = array((string)$queryinfo);
 				$opts = array($params);
+				$filteropts = false;
 			}
 			else
 			{
@@ -607,9 +613,46 @@
 						$vals[] = $val;
 					}
 				}
-				$sql .= " (" . implode(", ", $keys) . ") VALUES (" . implode(", ", $vals) . ")";
+				$sql .= " (" . implode(", ", $keys) . ") VALUES ";
+				$origsql = $sql;
+				$sql .= "(" . implode(", ", $vals) . ")";
 
-				if (isset($supported["POSTVALUES"]))
+				// Handle bulk inserts.
+				if (isset($queryinfo[3]) && isset($queryinfo[4]))
+				{
+					$bulkinsert = (isset($supported["BULKINSERT"]) && $supported["BULKINSERT"]);
+					$bulkinsertlimit = (isset($supported["BULKINSERTLIMIT"]) ? $supported["BULKINSERTLIMIT"] : false);
+					$sql = array($sql);
+					$args = array($args);
+					$lastpos = 0;
+					for ($x = 3; isset($queryinfo[$x]) && isset($queryinfo[$x + 1]); $x += 2)
+					{
+						if (!$bulkinsert || ($bulkinsertlimit !== false && count($args[$lastpos]) + count($queryinfo[$x]) + count($queryinfo[$x + 1]) >= $bulkinsertlimit))
+						{
+							$sql[] = $origsql;
+							$args[] = array();
+							$lastpos++;
+						}
+						else
+						{
+							$sql[$lastpos] .= ", ";
+						}
+
+						$vals = array();
+						foreach ($queryinfo[$x] as $key => $val)
+						{
+							$vals[] = "?";
+							$args[$lastpos][] = $val;
+						}
+
+						// Avoid this if possible.
+						foreach ($queryinfo[$x + 1] as $key => $val)  $vals[] = $val;
+
+						$sql[$lastpos] .= "(" . implode(", ", $vals) . ")";
+					}
+				}
+
+				if (isset($supported["POSTVALUES"]) && !isset($queryinfo[3]))
 				{
 					foreach ($supported["POSTVALUES"] as $key => $mode)
 					{

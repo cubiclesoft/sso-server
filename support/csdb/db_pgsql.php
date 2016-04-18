@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PostgreSQL database interface.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2015 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB"))  exit();
 
@@ -72,6 +72,7 @@
 						"PREINTO" => array(),
 						"POSTVALUES" => array("RETURNING" => "key_identifier"),
 						"SELECT" => true,
+						"BULKINSERT" => true
 					);
 
 					// To get the last insert ID via GetInsertID(), the field that contains a 'serial' (auto increment) field must be specified.
@@ -271,6 +272,15 @@
 					$opts[] = $queryinfo[0];
 
 					return array("success" => true, "filter_opts" => array("mode" => "SHOW CREATE TABLE", "hints" => (isset($queryinfo["EXPORT HINTS"]) ? $queryinfo["EXPORT HINTS"] : array())));
+				}
+				case "BULK IMPORT MODE":
+				{
+					$master = true;
+
+					if ($queryinfo)  $sql = "SET synchronous_commit TO OFF";
+					else  $sql = "SET synchronous_commit TO DEFAULT";
+
+					return array("success" => true);
 				}
 			}
 
