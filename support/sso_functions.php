@@ -869,7 +869,7 @@
 		}
 
 		if ($mode == "aes256")  $data = ExtendedAES::CreateDataPacket($data, $key, $options);
-		else  $data = Blowfish::CreateDataPacket($data, $key, $options);
+		else  $data = ExtendedBlowfish::CreateDataPacket($data, $key, $options);
 
 		$data = $mode . ":" . (!defined("SSO_DUAL_ENCRYPT") || SSO_DUAL_ENCRYPT ? "2" : "1") . ":" . base64_encode($data);
 
@@ -904,7 +904,7 @@
 			}
 
 			if ($mode == "aes256")  $data = ExtendedAES::ExtractDataPacket($data, $key, $options);
-			else  $data = Blowfish::ExtractDataPacket($data, $key, $options);
+			else  $data = ExtendedBlowfish::ExtractDataPacket($data, $key, $options);
 		}
 
 		if ($data !== false)  $data = @unserialize($data);
@@ -1068,7 +1068,7 @@
 			{
 				if ($data === false)  $data = $_COOKIE["sso_server_ns"];
 				$result = @base64_decode($data);
-				if ($result !== false)  $result = Blowfish::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true));
+				if ($result !== false)  $result = ExtendedAES::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true));
 				if ($result !== false)  $result = @unserialize($result);
 
 				if ($result !== false)  return $result;
@@ -1080,7 +1080,7 @@
 			{
 				if ($data === false)  $data = $_COOKIE["sso_server_ns2"];
 				$result = @base64_decode($data);
-				if ($result !== false)  $result = Blowfish::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey3"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true));
+				if ($result !== false)  $result = ExtendedAES::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey3"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true));
 				if ($result !== false)  $result = @unserialize($result);
 
 				if ($result !== false)  return $result;
@@ -1310,7 +1310,7 @@ document.location.replace('<?php echo BB_JSSafe($url); ?>');
 
 				$namespaces[$sso_apirow->namespace] = $_COOKIE["sso_server_id2"];
 				$data = serialize($namespaces);
-				$data = base64_encode(Blowfish::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true)));
+				$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true)));
 				SetCookieFixDomain("sso_server_ns", $data, 0, "", "", SSO_IsSSLRequest(), true);
 			}
 
@@ -1321,7 +1321,7 @@ document.location.replace('<?php echo BB_JSSafe($url); ?>');
 
 				$namespaces[$sso_apirow->namespace] = $sso_sessionrow2->id;
 				$data = serialize($namespaces);
-				$data = base64_encode(Blowfish::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey3"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true)));
+				$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey3"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true)));
 				$host = str_replace(array("http://", "https://"), "", BB_GetRequestHost());
 				SetCookieFixDomain("sso_server_ns2", $data, 0, "/", $host, false, true);
 			}

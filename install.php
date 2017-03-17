@@ -1225,10 +1225,10 @@ function Page(curr, next)
 				<div class="formitem">
 					<div class="formitemtitle">Primary Symmetric Cipher</div>
 					<select id="sso_primary_cipher" name="sso_primary_cipher">
-						<option value="blowfish">Blowfish</option>
 						<option value="aes256">AES-256</option>
+						<option value="blowfish">Blowfish</option>
 					</select>
-					<div class="formitemdesc">The cipher to use for encrypted database storage.  The ordering of the ciphers is intentional.  Blowfish is preferred, having withstood two decades of cryptanalysis.</div>
+					<div class="formitemdesc">The cipher to use for encrypted database storage.  The ordering of the ciphers is intentional.  AES-256 is faster on modern hardware.</div>
 				</div>
 				<div class="formitem">
 					<div class="formitemtitle">Use Dual Encryption</div>

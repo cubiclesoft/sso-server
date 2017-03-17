@@ -1,6 +1,6 @@
 <?php
 	// Cryptographically Secure Pseudo-Random String Generator (CSPRSG) and CSPRNG.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2017 CubicleSoft.  All Rights Reserved.
 
 	class CSPRNG
 	{
@@ -15,8 +15,11 @@
 			$this->fp = false;
 			$this->cryptosafe = $cryptosafe;
 
-			// OpenSSL first.
-			if (function_exists("openssl_random_pseudo_bytes"))
+			// Native first (PHP 7 and later).
+			if (function_exists("random_bytes"))  $this->mode = "native";
+
+			// OpenSSL fallback.
+			if ($this->mode === false && function_exists("openssl_random_pseudo_bytes"))
 			{
 				// PHP 5.4.0 introduced native Windows CryptGenRandom() integration via php_win32_get_random_bytes() for performance.
 				@openssl_random_pseudo_bytes(4, $strong);
@@ -62,7 +65,7 @@
 			// Throw an exception if unable to find a suitable entropy source.
 			if ($this->mode === false)
 			{
-				throw new Exception(CSPRNG::RNG_Translate("Unable to locate a suitable entropy source."));
+				throw new Exception(self::RNG_Translate("Unable to locate a suitable entropy source."));
 				exit();
 			}
 		}
@@ -84,6 +87,7 @@
 			{
 				switch ($this->mode)
 				{
+					case "native":  $data = @random_bytes($length);  break;
 					case "openssl":  $data = @openssl_random_pseudo_bytes($length, $strong);  if (!$strong)  $data = false;  break;
 					case "mcrypt":  $data = @mcrypt_create_iv($length, ($this->cryptosafe ? MCRYPT_DEV_RANDOM : MCRYPT_DEV_URANDOM));  break;
 					case "file":  $data = @fread($this->fp, $length);  break;

@@ -9,9 +9,8 @@
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/str_basics.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/page_basics.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/sso_functions.php";
-	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/aes.php";
-	if (!ExtendedAES::IsMcryptAvailable())  require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/phpseclib/AES.php";
+	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/random.php";
 
 	Str::ProcessAllInput();

@@ -1,6 +1,6 @@
 <?php
 	// Deflate stream class.  Default is RFC1951 (raw deflate).  Supports RFC1950 (ZLIB) and RFC1952 (gzip).
-	// (C) 2013 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	class DeflateStream
 	{
@@ -19,22 +19,22 @@
 
 		public static function IsSupported()
 		{
-			if (!is_bool(DeflateStream::$supported))
+			if (!is_bool(self::$supported))
 			{
-				DeflateStream::$supported = function_exists("stream_filter_append") && function_exists("stream_filter_remove") && function_exists("gzcompress");
-				if (DeflateStream::$supported)
+				self::$supported = function_exists("stream_filter_append") && function_exists("stream_filter_remove") && function_exists("gzcompress");
+				if (self::$supported)
 				{
-					$data = DeflateStream::Compress("test");
-					if ($data === false || $data === "")  DeflateStream::$supported = false;
+					$data = self::Compress("test");
+					if ($data === false || $data === "")  self::$supported = false;
 					else
 					{
-						$data = DeflateStream::Uncompress($data);
-						if ($data === false || $data !== "test")  DeflateStream::$supported = false;
+						$data = self::Uncompress($data);
+						if ($data === false || $data !== "test")  self::$supported = false;
 					}
 				}
 			}
 
-			return DeflateStream::$supported;
+			return self::$supported;
 		}
 
 		public static function Compress($data, $compresslevel = -1, $options = array())
@@ -93,6 +93,8 @@
 				}
 				else if ($this->options["type"] == "gzip")
 				{
+					if (!class_exists("CRC32Stream", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/crc32_stream.php";
+
 					$this->options["crc32"] = new CRC32Stream();
 					$this->options["crc32"]->Init();
 					$this->options["bytes"] = 0;

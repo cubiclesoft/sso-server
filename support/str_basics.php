@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft Basic PHP String helper/processing functions.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	class Str
 	{
@@ -20,7 +20,7 @@
 				else if (is_array($val))
 				{
 					$_REQUEST[$key] = array();
-					foreach ($val as $key2 => $val2)  $_REQUEST[$key][$key2] = self::ProcPOSTStr($val2);
+					foreach ($val as $key2 => $val2)  $_REQUEST[$key][$key2] = (is_string($val2) ? self::ProcPOSTStr($val2) : $val2);
 				}
 				else  $_REQUEST[$key] = $val;
 			}
@@ -105,6 +105,37 @@
 			if ($pos < $y)  $pos++;
 
 			return $result;
+		}
+
+		public static function ConvertUserStrToBytes($str)
+		{
+			$str = trim($str);
+			$num = (double)$str;
+			if (strtoupper(substr($str, -1)) == "B")  $str = substr($str, 0, -1);
+			switch (strtoupper(substr($str, -1)))
+			{
+				case "P":  $num *= 1024;
+				case "T":  $num *= 1024;
+				case "G":  $num *= 1024;
+				case "M":  $num *= 1024;
+				case "K":  $num *= 1024;
+			}
+
+			return $num;
+		}
+
+		public static function ConvertBytesToUserStr($num)
+		{
+			$num = (double)$num;
+
+			if ($num < 0)  return "0 B";
+			if ($num < 1024)  return number_format($num, 0) . " B";
+			if ($num < 1048576)  return str_replace(".0 ", "", number_format($num / 1024, 1)) . " KB";
+			if ($num < 1073741824)  return str_replace(".0 ", "", number_format($num / 1048576, 1)) . " MB";
+			if ($num < 1099511627776.0)  return str_replace(".0 ", "", number_format($num / 1073741824.0, 1)) . " GB";
+			if ($num < 1125899906842624.0)  return str_replace(".0 ", "", number_format($num / 1099511627776.0, 1)) . " TB";
+
+			return str_replace(".0 ", "", number_format($num / 1125899906842624.0, 1)) . " PB";
 		}
 	}
 ?>

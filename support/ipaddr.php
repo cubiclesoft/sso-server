@@ -1,9 +1,29 @@
 <?php
 	// CubicleSoft PHP IP Address functions.
-	// (C) 2013 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	class IPAddr
 	{
+		static function IsHostname($str)
+		{
+			$str = strtolower(str_replace(" ", "", $str));
+
+			$pos = strpos($str, ":");
+			if ($pos === false)
+			{
+				if (strpos($str, ".") === false || preg_match('/[^0-9.]/', $str))  return true;
+			}
+			else
+			{
+				$pos2 = strrpos($str, ":");
+				if ($pos2 !== false && $pos === $pos2)  return true;
+
+				if (preg_match('/[^0-9a-f:.]/', $str))  return true;
+			}
+
+			return false;
+		}
+
 		static function NormalizeIP($ipaddr)
 		{
 			$ipv4addr = "";

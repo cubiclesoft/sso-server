@@ -8,9 +8,8 @@
 	require_once "config.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/str_basics.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/sso_functions.php";
-	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/aes.php";
-	if (!ExtendedAES::IsMcryptAvailable())  require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/phpseclib/AES.php";
+	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/random.php";
 
 	Str::ProcessAllInput();
@@ -40,7 +39,7 @@
 		if ($sso_encrypted)
 		{
 			if ($sso_apikey_info["keyinfo"]["mode"] === "aes256")  $result = ExtendedAES::CreateDataPacket($result, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
-			else  $result = Blowfish::CreateDataPacket($result, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
+			else  $result = ExtendedBlowfish::CreateDataPacket($result, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
 
 			$result = base64_encode($result);
 		}
@@ -145,7 +144,7 @@
 		$sso_apikey_info["keyinfo"]["opts"]["prefix"] = pack("H*", $sso_rng->GenerateToken());
 
 		if ($sso_apikey_info["keyinfo"]["mode"] === "aes256")  $sso_data = ExtendedAES::ExtractDataPacket($sso_data, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
-		else  $sso_data = Blowfish::ExtractDataPacket($sso_data, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
+		else  $sso_data = ExtendedBlowfish::ExtractDataPacket($sso_data, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);
 
 		if ($sso_data === false)  SSO_EndpointError("Unable to decrypt data packet.");
 

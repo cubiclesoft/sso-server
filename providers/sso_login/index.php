@@ -1431,7 +1431,7 @@
 				if (!$result["success"])  return false;
 			} while ($ts < $mintime);
 
-			// Blowfish::Hash() does as many rounds as it can in the allotted time,
+			// ExtendedBlowfish::Hash() does as many rounds as it can in the allotted time,
 			// which will generally be more than a reasonable $minrounds setting.
 			if ($mode === "blowfish")  $minrounds /= 2;
 
@@ -1459,7 +1459,7 @@
 			}
 			else
 			{
-				$result = Blowfish::Hash($data, $minrounds, ($mintime !== false ? $mintime : $sso_settings["sso_login"]["password_mintime"]));
+				$result = ExtendedBlowfish::Hash($data, $minrounds, ($mintime !== false ? $mintime : $sso_settings["sso_login"]["password_mintime"]));
 			}
 
 			return $result;
@@ -1476,7 +1476,7 @@
 			}
 			else
 			{
-				$result = Blowfish::Hash($data, $numrounds, 0);
+				$result = ExtendedBlowfish::Hash($data, $numrounds, 0);
 				if (!$result["success"] || $hash !== bin2hex($result["hash"]))  return false;
 			}
 

@@ -133,7 +133,7 @@
 			$data .= "\tdefine(\"SSO_BASE_RAND_SEED13\", " . var_export(SSO_BASE_RAND_SEED13, true) . ");\n";
 			$data .= "\tdefine(\"SSO_BASE_RAND_SEED14\", " . var_export(SSO_BASE_RAND_SEED14, true) . ");\n";
 			$data .= "\n";
-			$data .= "\tdefine(\"SSO_PRIMARY_CIPHER\", \"blowfish\");\n";
+			$data .= "\tdefine(\"SSO_PRIMARY_CIPHER\", \"aes256\");\n";
 			$data .= "\tdefine(\"SSO_DUAL_ENCRYPT\", true);\n";
 			$data .= "?" . ">";
 			if (file_put_contents("config.php", $data) === false)  UpgradeError("Unable to update the server configuration file.");

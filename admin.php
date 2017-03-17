@@ -13,9 +13,8 @@
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/str_basics.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/page_basics.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/sso_functions.php";
-	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/aes.php";
-	if (!ExtendedAES::IsMcryptAvailable())  require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/phpseclib/AES.php";
+	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/blowfish.php";
 	require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/random.php";
 
 	SetDebugLevel();
@@ -1063,7 +1062,7 @@ div.formfields div.formitem table div.search_field_val b {
 				if (strlen($_REQUEST["namespace"]) > 20)  BB_SetPageMessage("error", "'Namespace' can only be 20 characters long.");
 				if ($_REQUEST["type"] != "normal" && $_REQUEST["type"] != "remote" && $_REQUEST["type"] != "custom")  BB_SetPageMessage("error", "Please select a 'Type'.");
 				if ((int)$_REQUEST["clock_drift"] < 0)  BB_SetPageMessage("error", "Invalid clock drift specified.");
-				if ($_REQUEST["cipher"] != "blowfish" && $_REQUEST["cipher"] != "aes256")  BB_SetPageMessage("error", "Please select a 'Symmetric Cipher'.");
+				if ($_REQUEST["cipher"] != "aes256" && $_REQUEST["cipher"] != "blowfish")  BB_SetPageMessage("error", "Please select a 'Symmetric Cipher'.");
 
 				if (BB_GetPageMessageType() != "error")
 				{
@@ -1153,7 +1152,7 @@ div.formfields div.formitem table div.search_field_val b {
 						"title" => "Symmetric Cipher",
 						"type" => "select",
 						"name" => "cipher",
-						"options" => array("blowfish" => "Blowfish", "aes256" => "AES-256"),
+						"options" => array("aes256" => "AES-256", "blowfish" => "Blowfish"),
 						"value" => BB_GetValue("cipher", ""),
 						"desc" => "Used when generating a new secret key.  The cipher to use to encrypt/decrypt data sent across the network.  The ordering of the ciphers is intentional."
 					),
@@ -1284,7 +1283,7 @@ div.formfields div.formitem table div.search_field_val b {
 		{
 			if ($_REQUEST["purpose"] == "")  BB_SetPageMessage("error", "Please fill in 'Purpose'.");
 			if (strlen($_REQUEST["namespace"]) > 20)  BB_SetPageMessage("error", "'Namespace' can only be 20 characters long.");
-			if ($_REQUEST["cipher"] != "blowfish" && $_REQUEST["cipher"] != "aes256")  BB_SetPageMessage("error", "Please select a 'Symmetric Cipher'.");
+			if ($_REQUEST["cipher"] != "aes256" && $_REQUEST["cipher"] != "blowfish")  BB_SetPageMessage("error", "Please select a 'Symmetric Cipher'.");
 
 			if (BB_GetPageMessageType() != "error")
 			{
@@ -1358,7 +1357,7 @@ div.formfields div.formitem table div.search_field_val b {
 					"title" => "Symmetric Cipher",
 					"type" => "select",
 					"name" => "cipher",
-					"options" => array("blowfish" => "Blowfish", "aes256" => "AES-256"),
+					"options" => array("aes256" => "AES-256", "blowfish" => "Blowfish"),
 					"value" => BB_GetValue("cipher", ""),
 					"desc" => "The cipher to use to encrypt/decrypt data sent across the network.  The ordering of the ciphers is intentional."
 				),

@@ -3,13 +3,13 @@
 	// (C) 2014 CubicleSoft.  All Rights Reserved.
 
 	// Load dependencies.
-	if (!class_exists("UTF8"))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf8.php";
-	if (!class_exists("IPAddr"))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/ipaddr.php";
+	if (!class_exists("UTF8", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf8.php";
+	if (!class_exists("IPAddr", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/ipaddr.php";
 
 	class SMTP
 	{
 		public static $dnsttlcache = array();
-		private static $purifier = false, $html = false;
+		private static $depths = array(), $purifier = false, $html = false;
 
 		// Reduce dependencies.  Duplicates code though.
 		private static function FilenameSafe($filename)
@@ -402,13 +402,13 @@
 
 			// Process results.
 			if (substr($domain, 0, 1) == "[" && substr($domain, -1) == "]")  $result = array("success" => true, "email" => $email, "lookup" => false, "type" => "IP");
-			else if (isset($options["usedns"]) && $options["usedns"] === false)  $result = array("success" => true, "email" => $email, "lookup" => false, "type" => "Domain");
-			else if ((!isset($options["usednsttlcache"]) || $options["usednsttlcache"] === true) && isset(self::$dnsttlcache[$domain]) && self::$dnsttlcache[$domain] >= time())  $result = array("success" => true, "email" => $email, "lookup" => false, "type" => "CachedDNS");
+			else if (isset($options["usedns"]) && $options["usedns"] === false)  $result = array("success" => true, "email" => $email, "lookup" => false, "type" => "Domain", "domain" => $domain);
+			else if ((!isset($options["usednsttlcache"]) || $options["usednsttlcache"] === true) && isset(self::$dnsttlcache[$domain]) && self::$dnsttlcache[$domain] >= time())  $result = array("success" => true, "email" => $email, "lookup" => false, "type" => "CachedDNS", "domain" => $domain);
 			else
 			{
 				// Check for a mail server based on a DNS lookup.
 				$result = self::GetDNSRecord($domain, array("MX", "A"), (isset($options["nameservers"]) ? $options["nameservers"] : array("8.8.8.8", "8.8.4.4")), (!isset($options["usednsttlcache"]) || $options["usednsttlcache"] === true));
-				if ($result["success"])  $result = array("success" => true, "email" => $email, "lookup" => true, "type" => $result["type"], "records" => $result["records"]);
+				if ($result["success"])  $result = array("success" => true, "email" => $email, "lookup" => true, "type" => $result["type"], "domain" => $domain, "records" => $result["records"]);
 			}
 
 			return $result;
@@ -426,7 +426,7 @@
 		public static function GetDNSRecord($domain, $types = array("MX", "A"), $nameservers = array("8.8.8.8", "8.8.4.4"), $cache = true)
 		{
 			// Check for a mail server based on a DNS lookup.
-			if (!class_exists("Net_DNS2_Resolver"))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/Net/DNS2.php";
+			if (!class_exists("Net_DNS2_Resolver", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/Net/DNS2.php";
 
 			$resolver = new Net_DNS2_Resolver(array("nameservers" => $nameservers));
 			try
@@ -775,35 +775,327 @@
 			return "";
 		}
 
-		private static function ProcessSMTPRequest($command, &$code, &$data, &$rawsend, &$rawrecv, $fp, $debug)
+		public static function GetTimeLeft($start, $limit)
 		{
-			if ($command != "")
+			if ($limit === false)  return false;
+
+			$difftime = microtime(true) - $start;
+			if ($difftime >= $limit)  return 0;
+
+			return $limit - $difftime;
+		}
+
+		private static function ProcessRateLimit($size, $start, $limit, $async)
+		{
+			$difftime = microtime(true) - $start;
+			if ($difftime > 0.0)
 			{
-				fwrite($fp, $command . "\r\n");
-				if ($debug)  $rawsend .= $command . "\r\n";
+				if ($size / $difftime > $limit)
+				{
+					// Sleeping for some amount of time will equalize the rate.
+					// So, solve this for $x:  $size / ($x + $difftime) = $limit
+					$amount = ($size - ($limit * $difftime)) / $limit;
+
+					if ($async)  return microtime(true) + $amount;
+					else  usleep($amount);
+				}
 			}
 
-			$code = 0;
-			$data = "";
-			do
-			{
-				$currline = fgets($fp);
-				if ($currline === false)  return false;
-				if ($debug)  $rawrecv .= $currline;
-				if (strlen($currline) >= 4)
-				{
-					$data .= substr($currline, 4);
-					$code = (int)substr($currline, 0, 3);
-					if (substr($currline, 3, 1) == " ")
-					{
-						$data = self::ReplaceNewlines("\r\n", $data);
+			return -1.0;
+		}
 
-						return true;
+		private static function StreamTimedOut($fp)
+		{
+			if (!function_exists("stream_get_meta_data"))  return false;
+
+			$info = stream_get_meta_data($fp);
+
+			return $info["timed_out"];
+		}
+
+		// Reads one or more lines in.
+		private static function ProcessState__ReadLine(&$state)
+		{
+			while (strpos($state["data"], "\n") === false)
+			{
+				$data2 = @fgets($state["fp"], 116000);
+				if ($data2 === false || $data2 === "")
+				{
+					if ($state["async"])  return array("success" => false, "error" => self::SMTP_Translate("Non-blocking read returned no data."), "errorcode" => "no_data");
+					else if ($data2 === false)  return array("success" => false, "error" => self::SMTP_Translate("Underlying stream encountered a read error."), "errorcode" => "stream_read_error");
+				}
+				if ($data2 === false || strpos($data2, "\n") === false)
+				{
+					if (feof($state["fp"]))  return array("success" => false, "error" => self::SMTP_Translate("Remote peer disconnected."), "errorcode" => "peer_disconnected");
+					if (self::StreamTimedOut($state["fp"]))  return array("success" => false, "error" => self::SMTP_Translate("Underlying stream timed out."), "errorcode" => "stream_timeout_exceeded");
+				}
+				if ($state["timeout"] !== false && self::GetTimeLeft($state["startts"], $state["timeout"]) == 0)  return array("success" => false, "error" => self::SMTP_Translate("SMTP timeout exceeded."), "errorcode" => "timeout_exceeded");
+
+				$state["result"]["rawrecvsize"] += strlen($data2);
+				$state["data"] .= $data2;
+
+				if (isset($state["options"]["recvratelimit"]))  $state["waituntil"] = self::ProcessRateLimit($state["rawsize"], $state["recvstart"], $state["options"]["recvratelimit"], $state["async"]);
+
+				if (isset($state["options"]["debug_callback"]) && is_callable($state["options"]["debug_callback"]))  call_user_func_array($state["options"]["debug_callback"], array("rawrecv", $data2, &$state["options"]["debug_callback_opts"]));
+				else if ($state["debug"])  $state["result"]["rawrecv"] .= $data2;
+			}
+
+			return array("success" => true);
+		}
+
+		// Writes data out.
+		private static function ProcessState__WriteData(&$state)
+		{
+			if ($state["data"] !== "")
+			{
+				$result = @fwrite($state["fp"], $state["data"]);
+				if ($result === false || feof($state["fp"]))  return array("success" => false, "error" => self::SMTP_Translate("A fwrite() failure occurred.  Most likely cause:  Connection failure."), "errorcode" => "fwrite_failed");
+				if ($state["timeout"] !== false && self::GetTimeLeft($state["startts"], $state["timeout"]) == 0)  return array("success" => false, "error" => self::SMTP_Translate("SMTP timeout exceeded."), "errorcode" => "timeout_exceeded");
+
+				$data2 = substr($state["data"], 0, $result);
+				$state["data"] = (string)substr($state["data"], $result);
+
+				$state["result"]["rawsendsize"] += $result;
+
+				if (isset($state["options"]["sendratelimit"]))
+				{
+					$state["waituntil"] = self::ProcessRateLimit($state["result"]["rawsendsize"], $state["result"]["connected"], $state["options"]["sendratelimit"], $state["async"]);
+					if (microtime(true) < $state["waituntil"])  return array("success" => false, "error" => self::SMTP_Translate("Rate limit for non-blocking connection has not been reached."), "errorcode" => "no_data");
+				}
+
+				if (isset($state["options"]["debug_callback"]) && is_callable($state["options"]["debug_callback"]))  call_user_func_array($state["options"]["debug_callback"], array("rawsend", $data2, &$state["options"]["debug_callback_opts"]));
+				else if ($state["debug"])  $state["result"]["rawsend"] .= $data2;
+			}
+
+			return array("success" => true);
+		}
+
+		public static function ForceClose(&$state)
+		{
+			if ($state["fp"] !== false)
+			{
+				@fclose($state["fp"]);
+				$state["fp"] = false;
+			}
+
+			if (isset($state["currentfile"]) && $state["currentfile"] !== false)
+			{
+				if ($state["currentfile"]["fp"] !== false)  @fclose($state["currentfile"]["fp"]);
+				$state["currentfile"] = false;
+			}
+		}
+
+		private static function CleanupErrorState(&$state, $result)
+		{
+			if (!$result["success"] && $result["errorcode"] !== "no_data")
+			{
+				self::ForceClose($state);
+
+				$state["error"] = $result;
+			}
+
+			return $result;
+		}
+
+		private static function InitSMTPRequest(&$state, $command, $expectedcode, $nextstate, $expectederror)
+		{
+			$state["data"] = $command . "\r\n";
+			$state["state"] = "send_request";
+			$state["expectedcode"] = $expectedcode;
+			$state["nextstate"] = $nextstate;
+			$state["expectederror"] = $expectederror;
+		}
+
+		public static function WantRead(&$state)
+		{
+			return ($state["state"] === "get_response");
+		}
+
+		public static function WantWrite(&$state)
+		{
+			return !self::WantRead($state);
+		}
+
+		public static function ProcessState(&$state)
+		{
+			if (isset($state["error"]))  return $state["error"];
+
+			if ($state["timeout"] !== false && self::GetTimeLeft($state["startts"], $state["timeout"]) == 0)  return self::CleanupErrorState($state, array("success" => false, "error" => self::SMTP_Translate("SMTP timeout exceeded."), "errorcode" => "timeout_exceeded"));
+			if (microtime(true) < $state["waituntil"])  return array("success" => false, "error" => self::SMTP_Translate("Rate limit for non-blocking connection has not been reached."), "errorcode" => "no_data");
+
+			while ($state["state"] !== "done")
+			{
+				switch ($state["state"])
+				{
+					case "connecting":
+					{
+						if (function_exists("stream_select") && $state["async"])
+						{
+							$readfp = NULL;
+							$writefp = array($state["fp"]);
+							$exceptfp = NULL;
+							$result = @stream_select($readfp, $writefp, $exceptfp, 0);
+							if ($result === false)  return self::CleanupErrorState($state, array("success" => false, "error" => self::SMTP_Translate("A stream_select() failure occurred.  Most likely cause:  Connection failure."), "errorcode" => "stream_select_failed"));
+
+							if (!count($writefp))  return array("success" => false, "error" => self::SMTP_Translate("Connection not established yet."), "errorcode" => "no_data");
+						}
+
+						// Handle peer certificate retrieval.
+						if (function_exists("stream_context_get_options"))
+						{
+							$contextopts = stream_context_get_options($state["fp"]);
+							if ($state["secure"] && isset($state["options"]["sslopts"]) && is_array($state["options"]["sslopts"]) && isset($contextopts["ssl"]["peer_certificate"]))
+							{
+								if (isset($state["options"]["debug_callback"]) && is_callable($state["options"]["debug_callback"]))  call_user_func_array($state["options"]["debug_callback"], array("peercert", @openssl_x509_parse($contextopts["ssl"]["peer_certificate"]), &$state["options"]["debug_callback_opts"]));
+							}
+						}
+
+						// Deal with failed connections that hang applications.
+						if (isset($state["options"]["streamtimeout"]) && $state["options"]["streamtimeout"] !== false && function_exists("stream_set_timeout"))  @stream_set_timeout($state["fp"], $state["options"]["streamtimeout"]);
+
+						$state["result"]["connected"] = microtime(true);
+
+						$state["data"] = "";
+						$state["code"] = 0;
+						$state["expectedcode"] = 220;
+						$state["expectederror"] = self::SMTP_Translate("Expected a 220 response from the SMTP server upon connecting.");
+						$state["response"] = "";
+						$state["state"] = "get_response";
+						$state["nextstate"] = "helo_ehlo";
+
+						break;
+					}
+					case "send_request":
+					{
+						// Send the request to the server.
+						$result = self::ProcessState__WriteData($state);
+						if (!$result["success"])  return self::CleanupErrorState($state, $result);
+
+						$state["code"] = 0;
+						$state["response"] = "";
+
+						// Handle QUIT differently.
+						$state["state"] = ($state["nextstate"] === "done" ? "done" : "get_response");
+
+						break;
+					}
+					case "get_response":
+					{
+						$result = self::ProcessState__ReadLine($state);
+						if (!$result["success"])  return self::CleanupErrorState($state, $result);
+
+						$currline = $state["data"];
+						$state["data"] = "";
+						if (strlen($currline) >= 4)
+						{
+							$state["response"] .= substr($currline, 4);
+							$state["code"] = (int)substr($currline, 0, 3);
+							if (substr($currline, 3, 1) == " ")
+							{
+								if ($state["expectedcode"] > 0 && $state["code"] !== $state["expectedcode"])  return self::CleanupErrorState($state, array("success" => false, "error" => $state["expectederror"], "errorcode" => "invalid_response", "info" => $state["code"] . " " . $state["response"]));
+
+								$state["response"] = self::ReplaceNewlines("\r\n", $state["response"]);
+
+								$state["state"] = $state["nextstate"];
+							}
+						}
+
+						break;
+					}
+					case "helo_ehlo":
+					{
+						// Send EHLO or HELO depending on server support.
+						$hostname = (isset($state["options"]["hostname"]) ? $state["options"]["hostname"] : "[" . trim(isset($_SERVER["SERVER_ADDR"]) && $_SERVER["SERVER_ADDR"] != "127.0.0.1" ? $_SERVER["SERVER_ADDR"] : "192.168.0.101") . "]");
+						$state["size_supported"] = 0;
+						if (strpos($state["response"], " ESMTP") !== false)
+						{
+							self::InitSMTPRequest($state, "EHLO " . $hostname, 250, "esmtp_extensions", self::SMTP_Translate("Expected a 250 response from the SMTP server upon EHLO."));
+						}
+						else
+						{
+							self::InitSMTPRequest($state, "HELO " . $hostname, 250, "mail_from", self::SMTP_Translate("Expected a 250 response from the SMTP server upon HELO."));
+						}
+
+						break;
+					}
+					case "esmtp_extensions":
+					{
+						// Process supported ESMTP extensions.
+						$auth = "";
+						$smtpdata = explode("\r\n", $state["response"]);
+						$y = count($smtpdata);
+						for ($x = 1; $x < $y; $x++)
+						{
+							if (strtoupper(substr($smtpdata[$x], 0, 4)) == "AUTH" && ($smtpdata[$x][4] == ' ' || $smtpdata[$x][4] == '='))  $auth = strtoupper(substr($smtpdata[$x], 5));
+							if (strtoupper(substr($smtpdata[$x], 0, 4)) == "SIZE" && ($smtpdata[$x][4] == ' ' || $smtpdata[$x][4] == '='))  $state["size_supported"] = (int)substr($smtpdata[$x], 5);
+						}
+
+						$state["state"] = "mail_from";
+
+						// Process login (if any and supported).
+						if (strpos($auth, "LOGIN") !== false)
+						{
+							$state["username"] = (isset($state["options"]["username"]) ? (string)$state["options"]["username"] : "");
+							$state["password"] = (isset($state["options"]["password"]) ? (string)$state["options"]["password"] : "");
+							if ($state["username"] !== "" || $state["password"] !== "")
+							{
+								self::InitSMTPRequest($state, "AUTH LOGIN", 334, "auth_login_username", self::SMTP_Translate("Expected a 334 response from the SMTP server upon AUTH LOGIN."));
+							}
+						}
+
+						break;
+					}
+					case "auth_login_username":
+					{
+						self::InitSMTPRequest($state, base64_encode($state["username"]), 334, "auth_login_password", self::SMTP_Translate("Expected a 334 response from the SMTP server upon AUTH LOGIN username."));
+
+						break;
+					}
+					case "auth_login_password":
+					{
+						self::InitSMTPRequest($state, base64_encode($state["password"]), 235, "mail_from", self::SMTP_Translate("Expected a 235 response from the SMTP server upon AUTH LOGIN password."));
+
+						break;
+					}
+					case "mail_from":
+					{
+						self::InitSMTPRequest($state, "MAIL FROM:<" . $state["fromaddrs"][0] . ">" . ($state["size_supported"] ? " SIZE=" . strlen($state["message"]) : ""), 250, "rcpt_to", self::SMTP_Translate("Expected a 250 response from the SMTP server upon MAIL FROM."));
+
+						break;
+					}
+					case "rcpt_to":
+					{
+						$addr = array_shift($state["toaddrs"]);
+						self::InitSMTPRequest($state, "RCPT TO:<" . $addr . ">", 250, (count($state["toaddrs"]) ? "rcpt_to" : "data"), self::SMTP_Translate("Expected a 250 response from the SMTP server upon RCPT TO."));
+
+						break;
+					}
+					case "data":
+					{
+						self::InitSMTPRequest($state, "DATA", 354, "send_message", self::SMTP_Translate("Expected a 354 response from the SMTP server upon DATA."));
+
+						break;
+					}
+					case "send_message":
+					{
+						self::InitSMTPRequest($state, $state["message"] . "\r\n.", 250, "quit", self::SMTP_Translate("Expected a 250 response from the SMTP server upon sending the e-mail."));
+
+						break;
+					}
+					case "quit":
+					{
+						self::InitSMTPRequest($state, "QUIT", 0, "done", "");
+
+						break;
 					}
 				}
-			} while (!feof($fp));
+			}
 
-			return false;
+			$state["result"]["endts"] = microtime(true);
+
+			fclose($state["fp"]);
+
+			return $state["result"];
 		}
 
 		private static function SMTP_RandomHexString($length)
@@ -851,6 +1143,11 @@
 		// Sends an e-mail by directly connecting to a SMTP server using PHP sockets.  Much more powerful than calling mail().
 		public static function SendSMTPEmail($toaddr, $fromaddr, $message, $options = array())
 		{
+			$startts = microtime(true);
+			$timeout = (isset($options["timeout"]) ? $options["timeout"] : false);
+
+			if (!function_exists("stream_socket_client") && !function_exists("fsockopen"))  return array("success" => false, "error" => self::SMTP_Translate("The functions 'stream_socket_client' and 'fsockopen' do not exist."), "errorcode" => "function_check");
+
 			$temptonames = array();
 			$temptoaddrs = array();
 			$tempfromnames = array();
@@ -862,8 +1159,6 @@
 			$secure = (isset($options["secure"]) ? $options["secure"] : false);
 			$port = (isset($options["port"]) ? (int)$options["port"] : -1);
 			if ($port < 0 || $port > 65535)  $port = ($secure ? 465 : 25);
-			$username = (isset($options["username"]) ? $options["username"] : "");
-			$password = (isset($options["password"]) ? $options["password"] : "");
 			$debug = (isset($options["debug"]) ? $options["debug"] : false);
 
 			$headers = "Message-ID: <" . self::SMTP_RandomHexString(8) . "." . self::SMTP_RandomHexString(7) . "@" . substr($tempfromaddrs[0], strrpos($tempfromaddrs[0], "@") + 1) . ">\r\n";
@@ -873,417 +1168,177 @@
 			$message = self::ReplaceNewlines("\r\n", $message);
 			$message = str_replace("\r\n.\r\n", "\r\n..\r\n", $message);
 
+			// Set up the final output array.
+			$result = array("success" => true, "rawsendsize" => 0, "rawrecvsize" => 0, "startts" => $startts);
+			$debug = (isset($options["debug"]) && $options["debug"]);
+			if ($debug)
+			{
+				$result["rawsend"] = "";
+				$result["rawrecv"] = "";
+			}
+
+			if ($timeout !== false && self::GetTimeLeft($startts, $timeout) == 0)  return array("success" => false, "error" => self::SMTP_Translate("SMTP timeout exceeded."), "errorcode" => "timeout_exceeded");
+
+			// Connect to the target server.
 			$hostname = (isset($options["hostname"]) ? $options["hostname"] : "[" . trim(isset($_SERVER["SERVER_ADDR"]) && $_SERVER["SERVER_ADDR"] != "127.0.0.1" ? $_SERVER["SERVER_ADDR"] : "192.168.0.101") . "]");
 			$errornum = 0;
 			$errorstr = "";
-			if (!isset($options["connecttimeout"]))  $options["connecttimeout"] = 10;
-			if (!function_exists("stream_socket_client"))  $fp = @fsockopen(($secure ? "tls://" : "") . $server, $port, $errornum, $errorstr, $options["connecttimeout"]);
+			if (isset($options["fp"]) && is_resource($options["fp"]))
+			{
+				$fp = $options["fp"];
+				unset($options["fp"]);
+			}
 			else
 			{
-				$context = @stream_context_create();
-				if ($secure && isset($options["sslopts"]) && is_array($options["sslopts"]))
+				if (!isset($options["connecttimeout"]))  $options["connecttimeout"] = 10;
+				$timeleft = self::GetTimeLeft($startts, $timeout);
+				if ($timeleft !== false)  $options["connecttimeout"] = min($options["connecttimeout"], $timeleft);
+				if (!function_exists("stream_socket_client"))  $fp = @fsockopen(($secure ? "tls://" : "") . $server, $port, $errornum, $errorstr, $options["connecttimeout"]);
+				else
 				{
-					self::ProcessSSLOptions($options, "sslopts", $server);
-					foreach ($options["sslopts"] as $key => $val)  @stream_context_set_option($context, "ssl", $key, $val);
+					$context = @stream_context_create();
+					if (isset($options["source_ip"]))  $context["socket"] = array("bindto" => $options["source_ip"] . ":0");
+					if ($secure && isset($options["sslopts"]) && is_array($options["sslopts"]))
+					{
+						self::ProcessSSLOptions($options, "sslopts", $server);
+						foreach ($options["sslopts"] as $key => $val)  @stream_context_set_option($context, "ssl", $key, $val);
+					}
+					$fp = @stream_socket_client(($secure ? "tls://" : "") . $server . ":" . $port, $errornum, $errorstr, $options["connecttimeout"], STREAM_CLIENT_CONNECT | (isset($options["async"]) && $options["async"] ? STREAM_CLIENT_ASYNC_CONNECT : 0), $context);
 				}
-				$fp = @stream_socket_client(($secure ? "tls://" : "") . $server . ":" . $port, $errornum, $errorstr, $options["connecttimeout"], STREAM_CLIENT_CONNECT, $context);
 
-				$contextopts = stream_context_get_options($context);
-				if ($secure && isset($options["sslopts"]) && is_array($options["sslopts"]) && isset($contextopts["ssl"]["peer_certificate"]))
-				{
-					if (isset($options["debug_callback"]))  $options["debug_callback"]("peercert", @openssl_x509_parse($contextopts["ssl"]["peer_certificate"]), $options["debug_callback_opts"]);
-				}
+				if ($fp === false)  return array("success" => false, "error" => self::SMTP_Translate("Unable to establish a SMTP connection to '%s'.", ($secure ? "tls://" : "") . $server . ":" . $port), "errorcode" => "connection_failure", "info" => $errorstr . " (" . $errornum . ")");
 			}
-			if ($fp === false)  return array("success" => false, "error" => self::SMTP_Translate("Unable to establish a SMTP connection to '%s'.", ($secure ? "tls://" : "") . $server . ":" . $port), "errorcode" => "connection_failure", "info" => $errorstr . " (" . $errornum . ")");
 
-			// Get initial connection information.
-			$rawsend = "";
-			$rawrecv = "";
-			if (!self::ProcessSMTPRequest("", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 220)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 220 response from the SMTP server upon connecting."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-			$size = 0;
-			if (strpos($smtpdata, " ESMTP") !== false)
-			{
-				if (!self::ProcessSMTPRequest("EHLO " . $hostname, $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 250)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 250 response from the SMTP server upon EHLO."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
+			if (function_exists("stream_set_blocking"))  @stream_set_blocking($fp, (isset($options["async"]) && $options["async"] ? 0 : 1));
 
-				// Process supported ESMTP extensions.
-				$auth = "";
-				$smtpdata = explode("\r\n", $smtpdata);
-				$y = count($smtpdata);
-				for ($x = 1; $x < $y; $x++)
-				{
-					if (strtoupper(substr($smtpdata[$x], 0, 4)) == "AUTH" && ($smtpdata[$x][4] == ' ' || $smtpdata[$x][4] == '='))  $auth = strtoupper(substr($smtpdata[$x], 5));
-					if (strtoupper(substr($smtpdata[$x], 0, 4)) == "SIZE" && ($smtpdata[$x][4] == ' ' || $smtpdata[$x][4] == '='))  $size = (int)substr($smtpdata[$x], 5);
-				}
+			// Initialize the connection request state array.
+			$state = array(
+				"fp" => $fp,
+				"async" => (isset($options["async"]) ? $options["async"] : false),
+				"debug" => $debug,
+				"startts" => $startts,
+				"timeout" => $timeout,
+				"waituntil" => -1.0,
+				"data" => "",
+				"code" => 0,
+				"expectedcode" => 0,
+				"expectederror" => "",
+				"response" => "",
+				"fromaddrs" => $tempfromaddrs,
+				"toaddrs" => $temptoaddrs,
+				"message" => $message,
+				"secure" => $secure,
 
-				if (strpos($auth, "LOGIN") !== false && ($username != "" || $password != ""))
-				{
-					if (!self::ProcessSMTPRequest("AUTH LOGIN", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 334)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 334 response from the SMTP server upon AUTH LOGIN."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-					if (!self::ProcessSMTPRequest(base64_encode($username), $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 334)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 334 response from the SMTP server upon AUTH LOGIN username."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-					if (!self::ProcessSMTPRequest(base64_encode($password), $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 235)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 235 response from the SMTP server upon AUTH LOGIN password."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-				}
-			}
-			else if (!self::ProcessSMTPRequest("HELO " . $hostname, $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 250)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 250 response from the SMTP server upon HELO."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
+				"state" => "connecting",
 
-			// Send the message.
-			if (!self::ProcessSMTPRequest("MAIL FROM:<" . $tempfromaddrs[0] . ">" . ($size ? " SIZE=" . strlen($message) : ""), $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 250)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 250 response from the SMTP server upon MAIL FROM."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-			foreach ($temptoaddrs as $addr)
-			{
-				if (!self::ProcessSMTPRequest("RCPT TO:<" . $addr . ">", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 250)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 250 response from the SMTP server upon RCPT TO."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-			}
-			if (!self::ProcessSMTPRequest("DATA", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 354)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 354 response from the SMTP server upon DATA."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
-			if (!self::ProcessSMTPRequest($message . "\r\n.", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug) || $smtpcode != 250)  return array("success" => false, "error" => self::SMTP_Translate("Expected a 250 response from the SMTP server upon sending the e-mail."), "errorcode" => "invalid_response", "info" => $smtpcode . " " . $smtpdata);
+				"options" => $options,
+				"result" => $result
+			);
 
-			self::ProcessSMTPRequest("QUIT", $smtpcode, $smtpdata, $rawsend, $rawrecv, $fp, $debug);
+			// Return the state for async calls.  Caller must call ProcessState().
+			if ($state["async"])  return array("success" => true, "state" => $state);
 
-			fclose($fp);
-
-			return array("success" => true, "rawsend" => $rawsend, "rawrecv" => $rawrecv);
+			// Run through all of the valid states and return the result.
+			return self::ProcessState($state);
 		}
 
-		private static function ConvertHTMLToText_FixWhitespace($data, &$depth)
+		// Has to be public so that TagFilter can successfully call.
+		public static function SMTP_HTMLTagFilter($stack, &$content, $open, $tagname, &$attrs, $options)
 		{
-			$lines = explode("\n", $data);
-			foreach ($lines as $num => $line)
+			$content = str_replace(array("&nbsp;", "&#160;", "\xC2\xA0"), array(" ", " ", " "), $content);
+			$content = str_replace("&amp;", "&", $content);
+			$content = str_replace("&quot;", "\"", $content);
+
+			if ($tagname === "head")  return array("keep_tag" => false, "keep_interior" => false);
+			if ($tagname === "style")  return array("keep_tag" => false, "keep_interior" => false);
+			if ($tagname === "script")  return array("keep_tag" => false, "keep_interior" => false);
+			if ($tagname === "a" && (!isset($attrs["href"]) || trim($attrs["href"]) === ""))  return array("keep_tag" => false, "keep_interior" => false);
+			if ($tagname === "/a" && $stack[0]["keep_interior"])
 			{
-				$line = preg_replace('/\s+/', " ", trim($line));
-				$line = preg_replace('/\s+\./', ".", $line);
-				if ($line != "")
+				if ($stack[0]["attrs"]["href"] === trim($content))  $content = " [ " . trim($content) . " ] ";
+				else if (trim($content) !== "")  $content = " " . trim($content) . " (" . trim($stack[0]["attrs"]["href"]) . ") ";
+			}
+			if ($tagname === "img")
+			{
+				if (!isset($attrs["src"]))  $attrs["src"] = "";
+
+				if (isset($attrs["alt"]) && trim($attrs["alt"]) !== "" && trim($attrs["alt"]) !== $attrs["src"])  $content .= trim($attrs["alt"]) . "\n\n";
+			}
+
+			if ($tagname === "table" || $tagname === "blockquote" || $tagname === "ul")  self::$depths[] = $tagname;
+			if ($tagname === "ol")  self::$depths[] = 1;
+
+			if (trim($content) !== "")
+			{
+				if ($tagname === "/tr")  $content = ltrim($content) . "\n\n";
+				if ($tagname === "/th")  $content = "*" . ltrim($content) . "*\n";
+				if ($tagname === "/td")  $content = ltrim($content) . "\n";
+				if ($tagname === "/div")  $content = ltrim($content) . "\n";
+				if ($tagname === "/li")  $content = "\n" . (count(self::$depths) && is_int(self::$depths[count(self::$depths) - 1]) ? sprintf("%d. ", self::$depths[count(self::$depths) - 1]++) : "- ") . ltrim($content) . "\n";
+				if ($tagname === "br")  $content .= "\n";
+				if ($tagname === "/h1" || $tagname === "/h2" || $tagname === "/h3")  $content = "*" . trim($content) . "*\n\n";
+				if ($tagname === "/h4" || $tagname === "/h5" || $tagname === "/h6")  $content = "*" . trim($content) . "*\n";
+				if ($tagname === "/i" || $tagname === "/em")  $content = " _" . trim($content) . "_ ";
+				if ($tagname === "/b" || $tagname === "/strong")  $content = " *" . trim($content) . "* ";
+				if ($tagname === "/p")  $content = "\n\n" . trim($content) . "\n\n";
+				if ($tagname === "/blockquote")  $content = "------------------------\n" . trim($content) . "\n------------------------\n";
+				if ($tagname === "/ul" || $tagname === "/ol" || $tagname === "/table" || $tagname === "/blockquote")
 				{
-					$str = "";
-					foreach ($depth as $num2 => $entry)
+					// Indent the lines of content varying amounts depending on final depth.
+					$prefix = "";
+					if ($tagname === "/table")  $prefix .= "\xFF\xFF";
+					if ($tagname === "/ul" || $tagname === "/ol")  $prefix .= "\xFF\xFF" . (count(self::$depths) > 1 ? "\xFF\xFF" : "");
+					if ($tagname === "/blockquote")  $prefix .= "\xFF\xFF\xFF\xFF";
+
+					$lines = explode("\n", $content);
+					foreach ($lines as $num => $line)
 					{
-						switch ($entry[0])
+						if (trim($line) !== "")
 						{
-							case "ol":
-							case "ul":
-							{
-								break;
-							}
-							case "li":
-							{
-								$str .= "  ";
-								if ($depth[$num2 - 1][0] == "ol")
-								{
-									if ($entry[1])  $str .= str_repeat(" ", strlen(sprintf("%d. ", $depth[$num2 - 1][1] - 1)));
-									else
-									{
-										$str .= sprintf("%d. ", $depth[$num2 - 1][1]);
-										$depth[$num2 - 1][1]++;
-										$depth[$num2][1] = true;
-									}
-								}
-								else if ($entry[1])  $str .= "  ";
-								else
-								{
-									$str .= "- ";
-									$depth[$num2][1] = true;
-								}
+							if ($line{0} !== "\xFF" && (($tagname === "/ul" && $line{0} !== "-") || ($tagname === "/ol" && !(int)$line{0})))  $prefix2 = "\xFF\xFF";
+							else  $prefix2 = "";
 
-								break;
-							}
-							case "bq":
-							{
-								if ($num2)  $str .= "    ";
-
-								break;
-							}
+							$lines[$num] = $prefix . $prefix2 . trim($line);
 						}
 					}
-
-					$line = $str . $line;
+					$content = "\n\n" . implode("\n", $lines) . "\n\n";
 				}
-
-				$lines[$num] = $line;
+				if ($tagname === "/pre")  $content = "\n\n" . $content . "\n\n";
 			}
 
-			return implode("\n", $lines);
+			if ($tagname === "/table" || $tagname === "/blockquote" || $tagname === "/ul" || $tagname === "/ol")  array_pop(self::$depths);
+
+			return array("keep_tag" => false);
 		}
 
-		private static function SMTP_HTMLPurify($data, $options = array())
+		// Has to be public so that TagFilter can successfully call.
+		public static function SMTP_HTMLContentFilter($stack, $result, &$content, $options)
 		{
-			if (!class_exists("HTMLPurifier"))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/htmlpurifier/HTMLPurifier.standalone.php";
-
-			if (self::$purifier === false)
+			if (TagFilter::GetParentPos($stack, "pre") === false)
 			{
-				$config = HTMLPurifier_Config::createDefault();
-				foreach ($options as $key => $val)  $config->set($key, $val);
-				self::$purifier = new HTMLPurifier($config);
+				$content = preg_replace('/\s{2,}/', "  ", str_replace(array("\r\n", "\n", "\r", "\t"), " ", $content));
+				if ($result !== "" && substr($result, -1) === "\n")  $content = trim($content);
 			}
-
-			$data = UTF8::MakeValid($data);
-
-			$data = self::$purifier->purify($data);
-
-			$data = UTF8::MakeValid($data);
-
-			return $data;
 		}
 
 		public static function ConvertHTMLToText($data)
 		{
-			// Strip everything outside 'body' tags.
-			$pos = stripos($data, "<body");
-			while ($pos !== false)
-			{
-				$pos2 = strpos($data, ">", $pos);
-				if ($pos2 !== false)  $data = substr($data, $pos2 + 1);
-				else  $data = "";
+			self::$depths = array();
 
-				$pos = stripos($data, "<body");
-			}
+			// Load TagFilter.
+			if (!class_exists("TagFilter", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/tag_filter.php";
 
-			$pos = stripos($data, "</body>");
-			if ($pos !== false)  $data = substr($data, 0, $pos);
+			$data = UTF8::MakeValid($data);
 
-			// Use HTML Purifier to clean up the tags.
-			$data = self::SMTP_HTMLPurify($data);
+			$options = TagFilter::GetHTMLOptions();
+			$options["tag_callback"] = "SMTP::SMTP_HTMLTagFilter";
+			$options["content_callback"] = "SMTP::SMTP_HTMLContentFilter";
 
-			// Replace newlines outside of 'pre' tags with spaces.
-			$data2 = "";
-			$lastpos = 0;
-			$pos = strpos($data, "<pre");
-			$pos2 = strpos($data, "</pre>");
-			$pos3 = strpos($data, ">", $pos);
-			while ($pos !== false && $pos2 !== false && $pos3 !== false && $pos3 < $pos2)
-			{
-				$data2 .= self::ReplaceNewlines(" ", substr($data, $lastpos, $pos3 + 1 - $lastpos));
-				$data2 .= self::ReplaceNewlines("\n", substr($data, $pos3 + 1, $pos2 - $pos3 - 1));
-				$data2 .= "</pre>";
+			$data = TagFilter::Run($data, $options);
 
-				$lastpos = $pos2 + 6;
-				$pos = strpos($data, "<pre", $lastpos);
-				$pos2 = strpos($data, "</pre>", $lastpos);
-				$pos3 = strpos($data, ">", $pos);
-			}
-			$data = $data2 . self::ReplaceNewlines(" ", substr($data, $lastpos));
+			$data = str_replace("\xFF", " ", $data);
 
-			$data = trim($data);
-
-			// Process the DOM to create consistent output.
-			if (!class_exists("simple_html_dom"))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/simple_html_dom.php";
-
-			if (self::$html === false)  self::$html = new simple_html_dom();
-
-			// Begin from the innermost tags to the top-level tags.
-			$data = str_replace(array("&nbsp;", "&#160;", "\xC2\xA0"), array(" ", " ", " "), $data);
-			$data = str_replace("&amp;", "&", $data);
-			$data = str_replace("&quot;", "\"", $data);
-			$boundary = "---" . self::MIME_RandomString(10) . "---";
-			$h_boundary = $boundary . "h---";
-			$ol_boundary_s = $boundary . "ol_s---";
-			$ol_boundary_e = $boundary . "ol_e---";
-			$ul_boundary_s = $boundary . "ul_s---";
-			$ul_boundary_e = $boundary . "ul_e---";
-			$li_boundary_s = $boundary . "li_s---";
-			$li_boundary_e = $boundary . "li_e---";
-			$pre_boundary = $boundary . "pre---";
-			$bq_boundary_s = $boundary . "bq_s---";
-			$bq_boundary_e = $boundary . "bq_e---";
-			self::$html->load("<body>" . $data . "</body>");
-			$body = self::$html->find("body", 0);
-			$node = $body->first_child();
-			while ($node)
-			{
-				while ($node->first_child())  $node = $node->first_child();
-
-				switch ($node->tag)
-				{
-					case "br":
-					{
-						$node->outertext = "\n";
-
-						break;
-					}
-					case "div":
-					case "p":
-					case "table":
-					case "tr":
-					case "td":
-					{
-						$str = trim($node->innertext);
-						if ($str != "")  $node->outertext = "\n" . $str . "\n";
-						else  $node->outertext = " ";
-
-						break;
-					}
-					case "strong":
-					case "b":
-					{
-						$str = trim($node->innertext);
-						if ($str != "")  $node->outertext = " *" . $str . "* ";
-						else  $node->outertext = " ";
-
-						break;
-					}
-					case "th":
-					case "h4":
-					case "h5":
-					case "h6":
-					{
-						$str = trim($node->innertext);
-						if ($str != "")  $node->outertext = "\n*" . $str . "*\n";
-						else  $node->outertext = " ";
-
-						break;
-					}
-					case "em":
-					case "i":
-					{
-						$str = trim($node->innertext);
-						if ($str != "")  $node->outertext = " _" . $str . "_ ";
-						else  $node->outertext = " ";
-
-						break;
-					}
-					case "a":
-					{
-						$str = trim($node->innertext);
-						if ($str == "" || !isset($node->href))  $node->outertext = " ";
-						else if ($str == $node->href)  $node->outertext = "[ " . $node->href . " ]";
-						else  $node->outertext = $str . " (" . $node->href . ") ";
-
-						break;
-					}
-					case "ul":
-					{
-						$node->outertext = "\n" . $ul_boundary_s . trim($node->innertext) . $ul_boundary_e . "\n";
-
-						break;
-					}
-					case "ol":
-					{
-						$node->outertext = "\n" . $ol_boundary_s . trim($node->innertext) . $ol_boundary_e . "\n";
-
-						break;
-					}
-					case "li":
-					{
-						$node->outertext = "\n" . $li_boundary_s . trim($node->innertext) . $li_boundary_e . "\n";
-
-						break;
-					}
-					case "h1":
-					case "h2":
-					case "h3":
-					{
-						$str = strtoupper(trim($node->innertext));
-						if ($str != "")  $node->outertext = $h_boundary . "\n*" . $str . "*\n";
-						else  $node->outertext = " ";
-
-						break;
-					}
-					case "pre":
-					{
-						$node->outertext = "\n" . $pre_boundary . $node->innertext . $pre_boundary . "\n";
-
-						break;
-					}
-					case "blockquote":
-					{
-						$node->outertext = "\n" . $bq_boundary_s . "----------\n" . trim($node->innertext) . "\n----------" . $bq_boundary_e . "\n";
-
-						break;
-					}
-					case "img":
-					{
-						$src = $node->src;
-						$pos = strrpos($src, "/");
-						if ($pos !== false)  $src = substr($src, $pos + 1);
-
-						if (isset($node->alt) && trim($node->alt) != "" && trim($node->alt) != $src)  $node->outertext = trim($node->alt);
-						else  $node->outertext = " ";
-
-						break;
-					}
-					default:  $node->outertext = " " . trim($node->innertext) . " ";
-				}
-
-				self::$html->load(self::$html->save());
-				$body = self::$html->find("body", 0);
-				$node = $body->first_child();
-			}
-
-			$body = self::$html->find("body", 0);
-			$data = trim($body->innertext);
-
-			// Post-scan the data for boundaries and alter whitespace accordingly.
-			$data2 = "";
-			$depth = array();
-			$lastpos = 0;
-			$pos = strpos($data, $boundary);
-			while ($pos !== false)
-			{
-				$data2 .= self::ConvertHTMLToText_FixWhitespace(substr($data, $lastpos, $pos - $lastpos), $depth);
-
-				$pos2 = strpos($data, "---", $pos + 16);
-				$str = substr($data, $pos + 16, $pos2 - $pos - 16);
-				$lastpos = $pos2 + 3;
-				switch ($str)
-				{
-					case "ol_s":
-					{
-						$depth[] = array("ol", 1);
-
-						break;
-					}
-					case "ol_e":
-					{
-						array_pop($depth);
-						if (!count($depth))  $data2 .= "\n";
-
-						break;
-					}
-					case "ul_s":
-					{
-						$depth[] = array("ul");
-
-						break;
-					}
-					case "ul_e":
-					{
-						array_pop($depth);
-						if (!count($depth))  $data2 .= "\n";
-
-						break;
-					}
-					case "li_s":
-					{
-						$depth[] = array("li", false);
-
-						break;
-					}
-					case "li_e":
-					{
-						array_pop($depth);
-
-						break;
-					}
-					case "pre":
-					{
-						$pos2 = strpos($data, $pre_boundary, $lastpos);
-						$data2 .= substr($data, $lastpos, $pos2 - $lastpos);
-						$lastpos = $pos2 + strlen($pre_boundary);
-
-						break;
-					}
-					case "bq_s":
-					{
-						$depth[] = array("bq");
-
-						break;
-					}
-					case "bq_e":
-					{
-						array_pop($depth);
-						if (!count($depth))  $data2 .= "\n";
-
-						break;
-					}
-				}
-
-				$pos = strpos($data, $boundary, $lastpos);
-			}
-			$data = $data2 . self::ConvertHTMLToText_FixWhitespace(substr($data, $lastpos), $depth);
+			$data = UTF8::MakeValid($data);
 
 			return $data;
 		}
@@ -1301,6 +1356,105 @@
 			}
 
 			return $result;
+		}
+
+		// Implements the correct MultiAsyncHelper responses for SMTP.
+		public static function SendEmailAsync__Handler($mode, &$data, $key, &$info)
+		{
+			switch ($mode)
+			{
+				case "init":
+				{
+					if ($info["init"])  $data = $info["keep"];
+					else
+					{
+						$info["result"] = self::SendEmail($info["fromaddr"], $info["toaddr"], $info["subject"], $info["options"]);
+						if (!$info["result"]["success"])
+						{
+							$info["keep"] = false;
+
+							if (is_callable($info["callback"]))  call_user_func_array($info["callback"], array($key, $info["url"], $info["result"]));
+						}
+						else
+						{
+							$info["state"] = $info["result"]["state"];
+
+							// Move to the live queue.
+							$data = true;
+						}
+					}
+
+					break;
+				}
+				case "update":
+				case "read":
+				case "write":
+				{
+					if ($info["keep"])
+					{
+						$info["result"] = self::ProcessState($info["state"]);
+						if ($info["result"]["success"] || $info["result"]["errorcode"] !== "no_data")  $info["keep"] = false;
+
+						if (is_callable($info["callback"]))  call_user_func_array($info["callback"], array($key, $info["url"], $info["result"]));
+
+						if ($mode === "update")  $data = $info["keep"];
+					}
+
+					break;
+				}
+				case "readfps":
+				{
+					if ($info["state"] !== false && self::WantRead($info["state"]))  $data[$key] = $info["state"]["fp"];
+
+					break;
+				}
+				case "writefps":
+				{
+					if ($info["state"] !== false && self::WantWrite($info["state"]))  $data[$key] = $info["state"]["fp"];
+
+					break;
+				}
+				case "cleanup":
+				{
+					// When true, caller is removing.  Otherwise, detaching from the queue.
+					if ($data === true)
+					{
+						if (isset($info["state"]))
+						{
+							if ($info["state"] !== false)  self::ForceClose($info["state"]);
+
+							unset($info["state"]);
+						}
+
+						$info["keep"] = false;
+					}
+
+					break;
+				}
+			}
+		}
+
+		public static function SendEmailAsync($helper, $key, $callback, $fromaddr, $toaddr, $subject, $options = array())
+		{
+			$options["async"] = true;
+
+			// DNS lookups are synchronous.  Disable this until it is possible to deal with them.
+			$options["usedns"] = false;
+
+			$info = array(
+				"init" => false,
+				"keep" => true,
+				"callback" => $callback,
+				"fromaddr" => $fromaddr,
+				"toaddr" => $toaddr,
+				"subject" => $subject,
+				"options" => $options,
+				"result" => false
+			);
+
+			$helper->Set($key, $info, array(__CLASS__, "SendEmailAsync__Handler"));
+
+			return array("success" => true);
 		}
 
 		public static function SendEmail($fromaddr, $toaddr, $subject, $options = array())

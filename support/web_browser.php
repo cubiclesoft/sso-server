@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP web browser state emulation class.
-	// (C) 2015 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	// Requires the CubicleSoft PHP HTTP class for HTTP/HTTPS.
 	class WebBrowser
@@ -9,6 +9,8 @@
 
 		public function __construct($prevstate = array())
 		{
+			if (!class_exists("HTTP", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/http.php";
+
 			$this->ResetState();
 			$this->SetState($prevstate);
 			$this->html = false;
@@ -50,7 +52,7 @@
 					{
 						if (!isset($this->data["allowedprotocols"][$state["urlinfo"]["scheme"]]) || !$this->data["allowedprotocols"][$state["urlinfo"]["scheme"]])
 						{
-							return array("success" => false, "error" => HTTP::HTTPTranslate("Protocol '%s' is not allowed in '%s'.", $state["urlinfo"]["scheme"], $state["url"]), "errorcode" => "allowed_protocols");
+							return array("success" => false, "error" => self::WBTranslate("Protocol '%s' is not allowed in '%s'.", $state["urlinfo"]["scheme"], $state["url"]), "errorcode" => "allowed_protocols");
 						}
 
 						$filename = HTTP::ExtractFilename($state["urlinfo"]["path"]);
@@ -127,6 +129,7 @@
 						$dothost = $host;
 						$dothost = strtolower($dothost);
 						if (substr($dothost, 0, 1) != ".")  $dothost = "." . $dothost;
+						$state["dothost"] = $dothost;
 
 						// Append cookies and delete old, invalid cookies.
 						$secure = ($state["urlinfo"]["scheme"] == "https");
@@ -134,6 +137,7 @@
 						if ($cookiepath == "")  $cookiepath = "/";
 						$pos = strrpos($cookiepath, "/");
 						if ($pos !== false)  $cookiepath = substr($cookiepath, 0, $pos + 1);
+						$state["cookiepath"] = $cookiepath;
 						$cookies = array();
 						foreach ($this->data["cookies"] as $domain => $paths)
 						{
@@ -167,6 +171,12 @@
 						$state["options"]["headers"] = $headers;
 						if ($state["timeout"] !== false)  $state["options"]["timeout"] = HTTP::GetTimeLeft($state["startts"], $state["timeout"]);
 
+						// Let a callback handle any additional state changes.
+						if (isset($state["options"]["pre_retrievewebpage_callback"]) && is_callable($state["options"]["pre_retrievewebpage_callback"]) && !call_user_func_array($state["options"]["pre_retrievewebpage_callback"], array(&$state)))
+						{
+							return array("success" => false, "error" => self::WBTranslate("Pre-RetrieveWebpage callback returned with a failure condition for '%s'.", $state["url"]), "errorcode" => "pre_retrievewebpage_callback");
+						}
+
 						// Process the request.
 						$result = HTTP::RetrieveWebpage($state["url"], $state["options"]);
 						$result["url"] = $state["url"];
@@ -178,7 +188,7 @@
 						$result["redirectts"] = $state["redirectts"];
 						if (isset($result["rawsendsize"]))  $state["totalrawsendsize"] += $result["rawsendsize"];
 						$result["totalrawsendsize"] = $state["totalrawsendsize"];
-						if (!$result["success"])  return array("success" => false, "error" => HTTP::HTTPTranslate("Unable to retrieve content.  %s", $result["error"]), "info" => $result, "state" => $state, "errorcode" => "retrievewebpage");
+						if (!$result["success"])  return array("success" => false, "error" => self::WBTranslate("Unable to retrieve content.  %s", $result["error"]), "info" => $result, "state" => $state, "errorcode" => "retrievewebpage");
 
 						if (isset($state["options"]["async"]) && $state["options"]["async"])
 						{
@@ -243,7 +253,7 @@
 
 							if (!isset($this->data["allowedredirprotocols"][$urlinfo2["scheme"]]) || !$this->data["allowedredirprotocols"][$urlinfo2["scheme"]])
 							{
-								return array("success" => false, "error" => HTTP::HTTPTranslate("Protocol '%s' is not allowed.  Server attempted to redirect to '%s'.", $urlinfo2["scheme"], $state["url"]), "info" => $state["result"], "errorcode" => "allowed_redir_protocols");
+								return array("success" => false, "error" => self::WBTranslate("Protocol '%s' is not allowed.  Server attempted to redirect to '%s'.", $urlinfo2["scheme"], $state["url"]), "info" => $state["result"], "errorcode" => "allowed_redir_protocols");
 							}
 
 							if ($urlinfo2["host"] != $state["urlinfo"]["host"])
@@ -305,16 +315,10 @@
 										unset($cookie["expires_ts"]);
 									}
 
-									if (!isset($cookie["domain"]))  $cookie["domain"] = $dothost;
-									$cookie["domain"] = strtolower($cookie["domain"]);
-									if (substr($cookie["domain"], 0, 1) != ".")  $cookie["domain"] = "." . $cookie["domain"];
-									if (!isset($cookie["path"]))  $cookie["path"] = $cookiepath;
-									$cookie["path"] = str_replace("\\", "/", $cookie["path"]);
-									if (substr($cookie["path"], -1) != "/")  $cookie["path"] = "/";
+									if (!isset($cookie["domain"]))  $cookie["domain"] = $state["dothost"];
+									if (!isset($cookie["path"]))  $cookie["path"] = $state["cookiepath"];
 
-									if (!isset($this->data["cookies"][$cookie["domain"]]))  $this->data["cookies"][$cookie["domain"]] = array();
-									if (!isset($this->data["cookies"][$cookie["domain"]][$cookie["path"]]))  $this->data["cookies"][$cookie["domain"]][$cookie["path"]] = array();
-									$this->data["cookies"][$cookie["domain"]][$cookie["path"]][] = $cookie;
+									$this->SetCookie($cookie);
 								}
 							}
 						}
@@ -459,13 +463,13 @@
 				}
 				case "readfps":
 				{
-					if ($info["state"]["httpstate"] !== false && $info["state"]["httpstate"]["type"] === "response")  $data[$key] = $info["state"]["httpstate"]["fp"];
+					if ($info["state"]["httpstate"] !== false && HTTP::WantRead($info["state"]["httpstate"]))  $data[$key] = $info["state"]["httpstate"]["fp"];
 
 					break;
 				}
 				case "writefps":
 				{
-					if ($info["state"]["httpstate"] !== false && $info["state"]["httpstate"]["type"] === "request")  $data[$key] = $info["state"]["httpstate"]["fp"];
+					if ($info["state"]["httpstate"] !== false && HTTP::WantWrite($info["state"]["httpstate"]))  $data[$key] = $info["state"]["httpstate"]["fp"];
 
 					break;
 				}
@@ -514,7 +518,12 @@
 
 			$lasthint = "";
 			$hintmap = array();
-			if ($this->html === false)  $this->html = new simple_html_dom();
+			if ($this->html === false)
+			{
+				if (!class_exists("simple_html_dom", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/simple_html_dom.php";
+
+				$this->html = new simple_html_dom();
+			}
 			$this->html->load($data);
 			$rows = $this->html->find("label[for]");
 			foreach ($rows as $row)
@@ -574,6 +583,8 @@
 			{
 				case "input":
 				{
+					if (!isset($row->name) && ($row->type === "submit" || $row->type === "image"))  $row->name = "";
+
 					if (isset($row->name) && is_string($row->name))
 					{
 						$field = array(
@@ -589,7 +600,8 @@
 							if ($field["value"] === "")  $field["value"] = "on";
 						}
 
-						if ($field["type"] == "input.submit" || $field["type"] == "input.image")  $field["hint"] = $field["type"] . "|" . $field["value"];
+						if (isset($row->placeholder))  $field["hint"] = trim($row->placeholder);
+						else if ($field["type"] == "input.submit" || $field["type"] == "input.image")  $field["hint"] = $field["type"] . "|" . $field["value"];
 						else if ($lasthint !== "")  $field["hint"] = $lasthint;
 
 						$fields[] = $field;
@@ -609,7 +621,9 @@
 							"name" => $row->name,
 							"value" => html_entity_decode($row->innertext, ENT_COMPAT, "UTF-8")
 						);
-						if ($lasthint !== "")  $field["hint"] = $lasthint;
+
+						if (isset($row->placeholder))  $field["hint"] = trim($row->placeholder);
+						else if ($lasthint !== "")  $field["hint"] = $lasthint;
 
 						$fields[] = $field;
 
@@ -685,7 +699,7 @@
 							"name" => $row->name,
 							"value" => (isset($row->value) ? html_entity_decode($row->value, ENT_COMPAT, "UTF-8") : "")
 						);
-						$field["hint"] = "button|" . $field["value"];
+						$field["hint"] = (trim($row->plaintext) !== "" ? trim($row->plaintext) : "button|" . $field["value"]);
 
 						$fields[] = $field;
 
@@ -710,6 +724,189 @@
 			}
 		}
 
+		public static function InteractiveFormFill($forms, $showselected = false)
+		{
+			if (!is_array($forms))  $forms = array($forms);
+
+			if (!count($forms))  return false;
+
+			if (count($forms) == 1)  $form = reset($forms);
+			else
+			{
+				echo self::WBTranslate("There are multiple forms available to fill out:\n");
+				foreach ($forms as $num => $form)
+				{
+					echo self::WBTranslate("\t%d:\n", $num + 1);
+					foreach ($form->info as $key => $val)  echo self::WBTranslate("\t\t%s:  %s\n", $key, $val);
+					echo self::WBTranslate("\t\tfields:  %d\n", count($form->GetVisibleFields(false)));
+					echo self::WBTranslate("\t\tbuttons:  %d\n", count($form->GetVisibleFields(true)) - count($form->GetVisibleFields(false)));
+					echo "\n";
+				}
+
+				do
+				{
+					echo self::WBTranslate("Select:  ");
+
+					$num = (int)trim(fgets(STDIN)) - 1;
+				} while (!isset($forms[$num]));
+
+				$form = $forms[$num];
+			}
+
+			if ($showselected)
+			{
+				echo self::WBTranslate("Selected form:\n");
+				foreach ($form->info as $key => $val)  echo self::WBTranslate("\t%s:  %s\n", $key, $val);
+				echo "\n";
+			}
+
+			if (count($form->GetVisibleFields(false)))
+			{
+				echo self::WBTranslate("Select form fields by field number to edit a field.  When ready to submit the form, leave 'Field number' empty.\n\n");
+
+				do
+				{
+					echo self::WBTranslate("Editable form fields:\n");
+					foreach ($form->fields as $num => $field)
+					{
+						if ($field["type"] == "input.hidden" || $field["type"] == "input.submit" || $field["type"] == "input.image" || $field["type"] == "input.button" || substr($field["type"], 0, 7) == "button.")  continue;
+
+						echo self::WBTranslate("\t%d:  %s - %s\n", $num + 1, $field["name"], (is_array($field["value"]) ? json_encode($field["value"], JSON_PRETTY_PRINT) : $field["value"]) . (($field["type"] == "input.radio" || $field["type"] == "input.checkbox") ? ($field["checked"] ? self::WBTranslate(" [Y]") : self::WBTranslate(" [N]")) : "") . (isset($field["hint"]) && $field["hint"] !== "" ? " [" . $field["hint"] . "]" : ""));
+					}
+					echo "\n";
+
+					do
+					{
+						echo self::WBTranslate("Field number:  ");
+
+						$num = trim(fgets(STDIN));
+						if ($num === "")  break;
+
+						$num = (int)$num - 1;
+					} while (!isset($form->fields[$num]) || $form->fields[$num]["type"] == "input.hidden" || $form->fields[$num]["type"] == "input.submit" || $form->fields[$num]["type"] == "input.image" || $form->fields[$num]["type"] == "input.button" || substr($form->fields[$num]["type"], 0, 7) == "button.");
+
+					if ($num === "")
+					{
+						echo "\n";
+
+						break;
+					}
+
+					$field = $form->fields[$num];
+					$prefix = (isset($field["hint"]) && $field["hint"] !== "" ? $field["hint"] . " | " : "") . $field["name"];
+
+					if ($field["type"] == "select")
+					{
+						echo self::WBTranslate("[%s] Options:\n", $prefix);
+						foreach ($field["options"] as $key => $val)
+						{
+							echo self::WBTranslate("\t%s:  %s\n");
+						}
+
+						do
+						{
+							echo self::WBTranslate("[%s] Select:  ", $prefix);
+
+							$select = rtrim(fgets(STDIN));
+						} while (!isset($field["options"][$select]));
+
+						$form->fields[$num]["value"] = $select;
+					}
+					else if ($field["type"] == "input.radio")
+					{
+						$form->SetFormValue($field["name"], $field["value"], true, "input.radio");
+					}
+					else if ($field["type"] == "input.checkbox")
+					{
+						$form->fields[$num]["checked"] = !$field["checked"];
+					}
+					else if ($field["type"] == "input.file")
+					{
+						do
+						{
+							echo self::WBTranslate("[%s] Filename:  ", $prefix);
+
+							$filename = rtrim(fgets(STDIN));
+						} while ($filename !== "" && !file_exists($filename));
+
+						if ($filename === "")  $form->fields[$num]["value"] = "";
+						else
+						{
+							$form->fields[$num]["value"] = array(
+								"filename" => $filename,
+								"type" => "application/octet-stream",
+								"datafile" => $filename
+							);
+						}
+					}
+					else
+					{
+						echo self::WBTranslate("[%s] New value:  ", $prefix);
+
+						$form->fields[$num]["value"] = rtrim(fgets(STDIN));
+					}
+
+					echo "\n";
+
+				} while (1);
+			}
+
+			$submitoptions = array(array("name" => self::WBTranslate("Default action"), "value" => self::WBTranslate("Might not work"), "hint" => "Default action"));
+			foreach ($form->fields as $num => $field)
+			{
+				if ($field["type"] != "input.submit" && $field["type"] != "input.image" && $field["type"] != "input.button" && $field["type"] != "button.submit")  continue;
+
+				$submitoptions[] = $field;
+			}
+
+			if (count($submitoptions) <= 2)  $num = count($submitoptions) - 1;
+			else
+			{
+				echo self::WBTranslate("Available submit buttons:\n");
+				foreach ($submitoptions as $num => $field)
+				{
+					echo self::WBTranslate("\t%d:  %s - %s\n", $num, $field["name"], $field["value"] . (isset($field["hint"]) && $field["hint"] !== "" ? " [" . $field["hint"] . "]" : ""));
+				}
+				echo "\n";
+
+				do
+				{
+					echo self::WBTranslate("Select:  ");
+
+					$num = (int)fgets(STDIN);
+				} while (!isset($submitoptions[$num]));
+
+				echo "\n";
+			}
+
+			$result = $form->GenerateFormRequest(($num ? $submitoptions[$num]["name"] : false), ($num ? $submitoptions[$num]["value"] : false));
+
+			return $result;
+		}
+
+		public function GetCookies()
+		{
+			return $this->data["cookies"];
+		}
+
+		public function SetCookie($cookie)
+		{
+			if (!isset($cookie["domain"]) || !isset($cookie["path"]) || !isset($cookie["name"]) || !isset($cookie["value"]))  return array("success" => false, "error" => self::WBTranslate("SetCookie() requires 'domain', 'path', 'name', and 'value' to be options."), "errorcode" => "missing_information");
+
+			$cookie["domain"] = strtolower($cookie["domain"]);
+			if (substr($cookie["domain"], 0, 1) != ".")  $cookie["domain"] = "." . $cookie["domain"];
+
+			$cookie["path"] = str_replace("\\", "/", $cookie["path"]);
+			if (substr($cookie["path"], -1) != "/")  $cookie["path"] = "/";
+
+			if (!isset($this->data["cookies"][$cookie["domain"]]))  $this->data["cookies"][$cookie["domain"]] = array();
+			if (!isset($this->data["cookies"][$cookie["domain"]][$cookie["path"]]))  $this->data["cookies"][$cookie["domain"]][$cookie["path"]] = array();
+			$this->data["cookies"][$cookie["domain"]][$cookie["path"]][] = $cookie;
+
+			return array("success" => true);
+		}
+
+		// Simulates closing a web browser.
 		public function DeleteSessionCookies()
 		{
 			foreach ($this->data["cookies"] as $domain => $paths)
@@ -763,6 +960,14 @@
 
 			return gmmktime($hour, $min, $sec, $month, $day, $year);
 		}
+
+		public static function WBTranslate()
+		{
+			$args = func_get_args();
+			if (!count($args))  return "";
+
+			return call_user_func_array((defined("CS_TRANSLATE_FUNC") && function_exists(CS_TRANSLATE_FUNC) ? CS_TRANSLATE_FUNC : "sprintf"), $args);
+		}
 	}
 
 	class WebBrowserForm
@@ -795,6 +1000,19 @@
 			foreach ($this->fields as $num => $field)
 			{
 				if (isset($field["hint"]))  $result[$field["hint"]] = $field["name"];
+			}
+
+			return $result;
+		}
+
+		public function GetVisibleFields($submit)
+		{
+			$result = array();
+			foreach ($this->fields as $num => $field)
+			{
+				if ($field["type"] == "input.hidden" || (!$submit && ($field["type"] == "input.submit" || $field["type"] == "input.image" || $field["type"] == "input.button" || substr($field["type"], 0, 7) == "button.")))  continue;
+
+				$result[$num] = $field;
 			}
 
 			return $result;
@@ -884,12 +1102,24 @@
 				else if ($field["type"] == "input.reset" || $field["type"] == "button.reset")
 				{
 				}
-				else if ($field["type"] == "input.submit" || $field["type"] == "button.submit")
+				else if ($field["type"] == "input.submit" || $field["type"] == "input.image" || $field["type"] == "button.submit")
 				{
 					if (($submitname === false || $field["name"] === $submitname) && ($submitvalue === false || $field["value"] === $submitvalue))
 					{
-						if (!isset($fields[$field["name"]]))  $fields[$field["name"]] = array();
-						$fields[$field["name"]][] = $field["value"];
+						if ($submitname !== "")
+						{
+							if (!isset($fields[$field["name"]]))  $fields[$field["name"]] = array();
+							$fields[$field["name"]][] = $field["value"];
+						}
+
+						if ($field["type"] == "input.image")
+						{
+							if (!isset($fields["x"]))  $fields["x"] = array();
+							$fields["x"][] = "1";
+
+							if (!isset($fields["y"]))  $fields["y"] = array();
+							$fields["y"][] = "1";
+						}
 					}
 				}
 				else if (($field["type"] != "input.radio" && $field["type"] != "input.checkbox") || $field["checked"])

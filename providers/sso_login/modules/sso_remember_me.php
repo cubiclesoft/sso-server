@@ -132,7 +132,7 @@
 				{
 					// Decrypt data.
 					$info2 = @base64_decode($_COOKIE["sso_l_rme"]);
-					if ($info2 !== false)  $info2 = Blowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
+					if ($info2 !== false)  $info2 = ExtendedBlowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
 					if ($info2 !== false)  $info2 = @unserialize($info2);
 					if ($info2 !== false)
 					{
@@ -283,7 +283,7 @@
 						{
 							// Decrypt existing data.
 							$info2 = @base64_decode($_COOKIE["sso_l_rme"]);
-							if ($info2 !== false)  $info2 = Blowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
+							if ($info2 !== false)  $info2 = ExtendedBlowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
 							if ($info2 !== false)  $info2 = @unserialize($info2);
 						}
 						if ($info2 === false)  $info2 = array();
@@ -291,7 +291,7 @@
 						$info2[$userrow->id] = array($token, $token2);
 
 						// Set the Remember Me cookie.
-						$data = base64_encode(Blowfish::CreateDataPacket(serialize($info2), pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
+						$data = base64_encode(ExtendedBlowfish::CreateDataPacket(serialize($info2), pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
 						SetCookieFixDomain("sso_l_rme", $data, time() + $info["maxdays"] * 24 * 60 * 60, "", "", BB_IsSSLRequest(), true);
 					}
 				}
@@ -323,7 +323,7 @@
 				{
 					// Decrypt data.
 					$info2 = @base64_decode($_COOKIE["sso_l_rme"]);
-					if ($info2 !== false)  $info2 = Blowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
+					if ($info2 !== false)  $info2 = ExtendedBlowfish::ExtractDataPacket($info2, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
 					if ($info2 !== false)  $info2 = @unserialize($info2);
 					if ($info2 !== false)
 					{

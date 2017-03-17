@@ -178,7 +178,7 @@
 					$userinfo["sso_antiphish"] = SSO_FrontendFieldValue($update ? "sso_login_antiphish_update" : "sso_login_antiphish");
 
 					// Set the anti-phishing cookie here.
-					$data = base64_encode(Blowfish::CreateDataPacket($userinfo["sso_antiphish"], pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
+					$data = base64_encode(ExtendedBlowfish::CreateDataPacket($userinfo["sso_antiphish"], pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
 					SetCookieFixDomain("sso_l_ap", $data, time() + 365 * 24 * 60 * 60, "", "", BB_IsSSLRequest(), true);
 				}
 			}
@@ -199,7 +199,7 @@
 				{
 					// Decrypt data.
 					$phrase = @base64_decode($_COOKIE["sso_l_ap"]);
-					if ($phrase !== false)  $phrase = Blowfish::ExtractDataPacket($phrase, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
+					if ($phrase !== false)  $phrase = ExtendedBlowfish::ExtractDataPacket($phrase, pack("H*", $info["cookiekey"]), array("mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true));
 					if ($phrase === false)  $phrase = "";
 				}
 ?>
@@ -247,7 +247,7 @@
 			if ($info["cookiekey"] != "" && $info["cookieiv"] != "" && $info["cookiekey2"] != "" && $info["cookieiv2"] != "" && isset($userinfo["sso_antiphish"]))
 			{
 				// Set the anti-phishing cookie here.
-				$data = base64_encode(Blowfish::CreateDataPacket($userinfo["sso_antiphish"], pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
+				$data = base64_encode(ExtendedBlowfish::CreateDataPacket($userinfo["sso_antiphish"], pack("H*", $info["cookiekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $info["cookieiv"]), "key2" => pack("H*", $info["cookiekey2"]), "iv2" => pack("H*", $info["cookieiv2"]), "lightweight" => true)));
 				SetCookieFixDomain("sso_l_ap", $data, time() + 365 * 24 * 60 * 60, "", "", BB_IsSSLRequest(), true);
 			}
 		}
