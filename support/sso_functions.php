@@ -87,7 +87,7 @@
 	function SSO_GetSupportedDatabases()
 	{
 		$result = array(
-			"mysql" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "host=localhost"),
+			"mysql" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "host=127.0.0.1"),
 			"pgsql" => array("production" => true, "login" => true, "replication" => true, "default_dsn" => "host=localhost"),
 			"oci" => array("production" => false, "login" => true, "replication" => true, "default_dsn" => "dbname=//localhost/ORCL"),
 			"sqlite" => array("production" => false, "login" => false, "replication" => false, "default_dsn" => "@PATH@/sqlite_@RANDOM@.db")
