@@ -106,6 +106,8 @@
 			$data = (string)$data;
 			if ($data == "")  return array("success" => false, "error" => "No data.");
 
+			if (!class_exists("Crypt_Blowfish", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/phpseclib/Blowfish.php";
+
 			// Expand data.
 			$origdata = $data;
 			while (strlen($data) < 56)  $data .= $origdata;
