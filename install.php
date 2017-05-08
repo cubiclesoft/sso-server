@@ -1,6 +1,6 @@
 <?php
 	// Single Sign-On Server
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2017 CubicleSoft.  All Rights Reserved.
 
 	if (file_exists("config.php"))  exit();
 
@@ -30,19 +30,10 @@
 	<table align="center">
 		<tr class="head"><th>Test</th><th>Passed?</th></tr>
 		<tr class="row">
-			<td>PHP 5.4.x or later</td>
+			<td>PHP 5.6.x or later</td>
 			<td align="right">
 <?php
-		if ((double)phpversion() < 5.4)  echo "<span class=\"error\">No</span><br /><br />The server is running PHP " . phpversion() . ".  The installation may succeed but the rest of the Single Sign-On Server will be broken.  You will be unable to use this product.  Running outdated versions of PHP poses a serious website security risk.  Please contact your system administrator to upgrade your PHP installation.";
-		else  echo "<span class=\"success\">Yes</span>";
-?>
-			</td>
-		</tr>
-		<tr class="row altrow">
-			<td>PHP 'safe_mode' off</td>
-			<td align="right">
-<?php
-		if (ini_get('safe_mode'))  echo "<span class=\"error\">No</span><br /><br />PHP is running with 'safe_mode' enabled.  You will probably get additional failures below relating to file/directory creation.  This setting is generally accepted as a poor security solution that doesn't work and is deprecated.  Please turn it off.  If you are getting errors below, can't change this setting, and the fixes below aren't working, you may need to contact your hosting service provider.";
+		if ((double)phpversion() < 5.6)  echo "<span class=\"error\">No</span><br /><br />The server is running PHP " . phpversion() . ".  The installation may succeed but the rest of the Single Sign-On Server will be broken.  You will be unable to use this product.  Running outdated versions of PHP poses a serious website security risk.  Please contact your system administrator to upgrade your PHP installation.";
 		else  echo "<span class=\"success\">Yes</span>";
 ?>
 			</td>
@@ -108,33 +99,6 @@
 			<td align="right">
 <?php
 		if (!isset($_SERVER["REQUEST_URI"]))  echo "<span class=\"error\">No</span><br /><br />Server does not support this feature.  The installation may fail and the site might not work.";
-		else  echo "<span class=\"success\">Yes</span>";
-?>
-			</td>
-		</tr>
-		<tr class="row">
-			<td>PHP 'register_globals' off</td>
-			<td align="right">
-<?php
-		if (ini_get('register_globals'))  echo "<span class=\"error\">No</span><br /><br />PHP is running with 'register_globals' enabled.  This setting is generally accepted as a major security risk and is deprecated.  Please turn it off by editing the php.ini file for your site - you may need to contact your hosting provider to accomplish this task.";
-		else  echo "<span class=\"success\">Yes</span>";
-?>
-			</td>
-		</tr>
-		<tr class="row altrow">
-			<td>PHP 'magic_quotes_gpc' off</td>
-			<td align="right">
-<?php
-		if (get_magic_quotes_gpc())  echo "<span class=\"error\">No</span><br /><br />PHP is running with 'magic_quotes_gpc' enabled.  This setting is generally accepted as a security risk AND causes all sorts of non-security-related problems.  It is also deprecated.  Please turn it off by editing the php.ini file for your site - you may need to contact your hosting provider to accomplish this task.";
-		else  echo "<span class=\"success\">Yes</span>";
-?>
-			</td>
-		</tr>
-		<tr class="row">
-			<td>PHP 'magic_quotes_sybase' off</td>
-			<td align="right">
-<?php
-		if (ini_get('magic_quotes_sybase'))  echo "<span class=\"error\">No</span><br /><br />PHP is running with 'magic_quotes_sybase' enabled.  This setting is generally accepted as a security risk AND causes all sorts of non-security-related problems.  It is also deprecated.  Please turn it off by editing the php.ini file for your site - you may need to contact your hosting provider to accomplish this task.";
 		else  echo "<span class=\"success\">Yes</span>";
 ?>
 			</td>
