@@ -971,7 +971,7 @@ function Page(curr, next)
 				<div class="formitem">
 					<div class="formitemtitle">DSN Options</div>
 					<input class="text" id="db_dsn" type="text" name="db_dsn" value="" />
-					<div class="formitemdesc">The initial connection string to connect to the database server.  Options are driver specific.  Leave blank for the default.  Usually takes the form of:  host=ipaddr_or_hostname[;port=portnum] (e.g. host=localhost;port=3306)</div>
+					<div class="formitemdesc">The initial connection string to connect to the database server.  Options are driver specific.  Leave blank for the default.  Usually takes the form of:  host=ipaddr_or_hostname[;port=portnum] (e.g. host=127.0.0.1;port=3306)</div>
 				</div>
 				<div class="formitem db_login">
 					<div class="formitemtitle">Username</div>

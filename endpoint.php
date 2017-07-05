@@ -1,6 +1,6 @@
 <?php
 	// SSO server endpoint.
-	// (C) 2015 CubicleSoft.  All Rights Reserved.
+	// (C) 2017 CubicleSoft.  All Rights Reserved.
 
 	define("SSO_FILE", 1);
 	define("SSO_MODE", "endpoint");
@@ -35,7 +35,7 @@
 
 		if (!$sso_skipsleep)  SSO_RandomSleep();
 
-		$result = @json_encode($result);
+		$result = @json_encode($result, JSON_UNESCAPED_SLASHES);
 		if ($sso_encrypted)
 		{
 			if ($sso_apikey_info["keyinfo"]["mode"] === "aes256")  $result = ExtendedAES::CreateDataPacket($result, $sso_apikey_info["keyinfo"]["key"], $sso_apikey_info["keyinfo"]["opts"]);

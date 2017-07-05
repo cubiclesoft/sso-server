@@ -390,8 +390,6 @@ abstract class BaseFacebook
    */
   public function setExtendedAccessToken() {
     try {
-      // need to circumvent json_decode by calling _oauthRequest
-      // directly, since response isn't JSON format.
       $access_token_response = $this->_oauthRequest(
         $this->getUrl('graph', '/oauth/access_token'),
         $params = array(
@@ -412,17 +410,16 @@ abstract class BaseFacebook
       return false;
     }
 
-    $response_params = array();
-    parse_str($access_token_response, $response_params);
+    $result = json_decode($access_token_response, true);
 
-    if (!isset($response_params['access_token'])) {
-      return false;
+    if (!is_array($result) || (!isset($result['access_token']))) {
+        return false;
     }
 
     $this->destroySession();
 
     $this->setPersistentData(
-      'access_token', $response_params['access_token']
+      'access_token', $result['access_token']
     );
   }
 
@@ -803,8 +800,6 @@ abstract class BaseFacebook
     }
 
     try {
-      // need to circumvent json_decode by calling _oauthRequest
-      // directly, since response isn't JSON format.
       $access_token_response =
         $this->_oauthRequest(
           $this->getUrl('graph', '/oauth/access_token'),
@@ -822,13 +817,13 @@ abstract class BaseFacebook
       return false;
     }
 
-    $response_params = array();
-    parse_str($access_token_response, $response_params);
-    if (!isset($response_params['access_token'])) {
-      return false;
+    $result = json_decode($access_token_response, true);
+
+    if (!is_array($result) || (!isset($result['access_token']))) {
+        return false;
     }
 
-    return $response_params['access_token'];
+    return $result['access_token'];
   }
 
   /**
