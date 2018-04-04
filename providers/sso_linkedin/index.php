@@ -330,7 +330,7 @@
 					)
 				);
 				$web = new WebBrowser();
-				$result = $web->Process($url, "auto", $options);
+				$result = $web->Process($url, $options);
 
 				if (!$result["success"])  $this->DisplayError(BB_Translate("Sign in failed.  Error retrieving URL for LinkedIn access token.  %s", $result["error"]));
 				else if ($result["response"]["code"] != 200)  $this->DisplayError(BB_Translate("Sign in failed.  The LinkedIn access token server returned:  %s", $result["response"]["code"] . " " . $result["response"]["meaning"]));
