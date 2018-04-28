@@ -35,7 +35,7 @@ Getting Started
 
 The fastest way to get started without reading a lot of documentation is to download/'git pull' the server from this repository and a SSO client from the list above and then follow along with the four part video tutorial series:
 
-[(![SSO server/client tutorial series](https://user-images.githubusercontent.com/1432111/39399682-1ac2d3de-4ad7-11e8-8ba7-6f1bf284e0c0.png)](https://www.youtube.com/watch?v=xjPp_YVGttw&list=PLIvucSFZRDjgiSfsm707zn-bqKd64Eikb)
+[![SSO server/client tutorial series](https://user-images.githubusercontent.com/1432111/39399682-1ac2d3de-4ad7-11e8-8ba7-6f1bf284e0c0.png)](https://www.youtube.com/watch?v=xjPp_YVGttw&list=PLIvucSFZRDjgiSfsm707zn-bqKd64Eikb)
 
 And use the [installation documentation](https://github.com/cubiclesoft/sso-server/blob/master/docs/install.md) as necessary.
 
