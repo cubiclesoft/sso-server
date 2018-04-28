@@ -739,13 +739,28 @@ EOF;
 			if (substr($adminurl, -1) != "/")  $adminurl .= "/";
 			$adminurl .= $admindir . "/admin.php";
 			InstallSuccess("Successfully created a randomly named directory and moved 'admin.php' into it.");
+
+			$adminhookfile = SSO_ROOT_PATH . "/" . $admindir . "/admin_hook.php";
 		}
 		else
 		{
 			$adminurl = dirname(BB_GetFullRequestURLBase());
 			if (substr($adminurl, -1) != "/")  $adminurl .= "/";
 			$adminurl .= "admin.php";
+
+			$adminhookfile = SSO_ROOT_PATH . "/admin_hook.php";
 		}
+
+		// Create a basic admin hook file.
+		$data = "<" . "?php\n";
+		$data .= "\tif (!defined(\"SSO_FILE\"))  exit();\n";
+		$data .= "\n";
+		$data .= "\tif (\$_SERVER[\"REMOTE_ADDR\"] !== " . $_SERVER["REMOTE_ADDR"] . ")  exit();\n";
+		$data .= "\n";
+		$data .= "\t\$bb_usertoken = " . substr($rng->GenerateToken(), 0, 32) . ";\n";
+		$data .= "\t\$sso_site_admin = true;\n";
+		if (file_put_contents($adminhookfile, $data) === false)  InstallError("Unable to create the admin hook file.");
+		InstallSuccess("Successfully created the admin hook file.");
 
 		// Set up the main configuration file.
 		$data = "<" . "?php\n";
@@ -817,7 +832,6 @@ EOF;
 ?>
 		<br />
 		Next:  <a href="<?php echo htmlspecialchars($adminurl); ?>">Start using Single-Sign On</a><br />
-		(Read the installation instructions or the above link might not work.)<br />
 <?php
 	}
 	else
