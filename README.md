@@ -52,7 +52,7 @@ Related Projects
 More Information
 ----------------
 
-* [The PHP SSO client](https://github.com/cubiclesoft/sso-server/blob/master/docs/php-sso-client) - Official documentation for the the PHP SSO client.
+* [The PHP SSO client](https://github.com/cubiclesoft/sso-server/blob/master/docs/php-sso-client.md) - Official documentation for the the PHP SSO client.
 * [Upgrading](https://github.com/cubiclesoft/sso-server/blob/master/docs/upgrade.md) - Important information regarding upgrades.
 * [Integrating SSO clients with third-party software](https://github.com/cubiclesoft/sso-server/blob/master/docs/integrating-with-third-party-software.md) - Instructions for integrating with forums, CMS products, etc.  Dealing with any software that comes with its own login system.
 * [Import existing user accounts](https://github.com/cubiclesoft/sso-server/blob/master/docs/import-existing-user-accounts.md) - Instructions for migrating from another product or a homegrown login system.
