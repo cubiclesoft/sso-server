@@ -47,7 +47,7 @@ Related Projects
 * [Native app framework/API](https://github.com/cubiclesoft/sso-native-apps)
 * [Native app demos](http://barebonescms.com/sso_native_app_demos.zip) - Precompiled versions of the above
 * [Disqus provider](https://github.com/khachin/sso-disqus-provider)
-* [MyBB plugin](http://barebonescms.com/MyBB_SSOClient-2.4.zip) - Direct download
+* [MyBB plugin](http://barebonescms.com/MyBB_SSOClient-2.5.zip) - Direct download
 
 More Information
 ----------------
