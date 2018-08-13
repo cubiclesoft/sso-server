@@ -356,7 +356,10 @@ Once the SSO client has been successfully installed, it is time to try it out an
 	$user = $sso_client->GetMappedUserInfo($fields);
 
 	// Test permissions for the user.
-	if (!$sso_client->IsSiteAdmin())  $sso_client->Login("", "insufficient_permissions");
+	if (!$sso_client->IsSiteAdmin())
+	{
+		$sso_client->Login("", ($sso_client->FromSSOServer() ? "insufficient_permissions" : "You must login with an account with sufficient permissions to use this system."), $extra);
+	}
 
 	// Get the internal token for use with XSRF defenses.
 	// Not used in this example.
@@ -415,7 +418,10 @@ For those who would rather use plain functions instead of the `SSO_Client` class
 	$user = SSO_GetMappedUserInfo($fields);
 
 	// Test permissions for the user.
-	if (!SSO_IsSiteAdmin())  SSO_Login("", "insufficient_permissions");
+	if (!SSO_IsSiteAdmin())
+	{
+		SSO_Login("", (SSO_FromSSOServer() ? "insufficient_permissions" : "You must login with an account with sufficient permissions to use this system."), $extra);
+	}
 
 	// Get the internal token for use with XSRF defenses.
 	// Not used in this example.
