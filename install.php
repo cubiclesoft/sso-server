@@ -349,7 +349,7 @@ EOF;
 		// Set up page-level calculation variables.
 		define("SSO_ROOT_PATH", str_replace("\\", "/", dirname(__FILE__)));
 
-		$url = dirname(BB_GetRequestURLBase());
+		$url = str_replace("\\", "/", dirname(BB_GetRequestURLBase()));
 		if (substr($url, -1) == "/")  $url = substr($url, 0, -1);
 		define("SSO_ROOT_URL", $url);
 
