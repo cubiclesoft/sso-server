@@ -1809,6 +1809,13 @@ SSO_Vars = {
 			}
 			else if (isset($_REQUEST["sso_login_action"]) && $_REQUEST["sso_login_action"] == "signup" && $sso_settings["sso_login"]["open_reg"])
 			{
+				// Set up two-factor authentication key even if 2FA isn't set up.
+				if (!isset($sso_session_info["sso_login_two_factor_key"]))
+				{
+					$sso_session_info["sso_login_two_factor_key"] = self::GenerateOTPKey(10);
+					SSO_SaveSessionInfo();
+				}
+
 				if (SSO_FrontendFieldValue("submit") === false)  $messages = false;
 				else
 				{
@@ -1957,12 +1964,6 @@ SSO_Vars = {
 				if (!$sso_settings["sso_login"]["require_two_factor"] && count($outputmap2))  SSO_AddSortedOutput($outputmap2, 0, "", "<option value=\"\"" . ($method == "" ? " selected" : "") . ">" . htmlspecialchars(BB_Translate("None")) . "</option>");
 				if (count($outputmap2))
 				{
-					if (!isset($sso_session_info["sso_login_two_factor_key"]))
-					{
-						$sso_session_info["sso_login_two_factor_key"] = self::GenerateOTPKey(10);
-						SSO_SaveSessionInfo();
-					}
-
 					ob_start();
 ?>
 			<div class="sso_main_formitem">
@@ -2076,6 +2077,13 @@ SSO_Vars = {
 				}
 				else
 				{
+					// Set up two-factor authentication key even if 2FA isn't set up.
+					if (!isset($sso_session_info["sso_login_two_factor_key"]))
+					{
+						$sso_session_info["sso_login_two_factor_key"] = self::GenerateOTPKey(10);
+						SSO_SaveSessionInfo();
+					}
+
 					$messagesheader = false;
 					$messages = false;
 					if (SSO_FrontendFieldValue("submit") === false)
@@ -2263,12 +2271,6 @@ SSO_Vars = {
 				if (!$sso_settings["sso_login"]["require_two_factor"] && count($outputmap2))  SSO_AddSortedOutput($outputmap2, 0, "", "<option value=\"\"" . ($method == "" ? " selected" : "") . ">" . htmlspecialchars(BB_Translate("None")) . "</option>");
 				if (count($outputmap2))
 				{
-					if (!isset($sso_session_info["sso_login_two_factor_key"]))
-					{
-						$sso_session_info["sso_login_two_factor_key"] = self::GenerateOTPKey(10);
-						SSO_SaveSessionInfo();
-					}
-
 					ob_start();
 ?>
 			<div class="sso_main_formitem">
