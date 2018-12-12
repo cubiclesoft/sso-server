@@ -1833,7 +1833,7 @@ SSO_Vars = {
 						{
 							$userinfo = array();
 							$userinfo["extra"] = $sso_rng->GenerateString();
-							$userinfo["two_factor_key"] = $sso_session_info["sso_login_two_factor_key"];
+							$userinfo["two_factor_key"] = (isset($sso_session_info["sso_login_two_factor_key"])) ? $sso_session_info["sso_login_two_factor_key"] : "";
 							$userinfo["two_factor_method"] = SSO_FrontendFieldValue("two_factor_method", "");
 							foreach ($this->activemodules as &$instance)
 							{
