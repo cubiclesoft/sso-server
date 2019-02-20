@@ -873,6 +873,9 @@
 						}
 					}
 
+					// Reset two-factor authentication.
+					if (!$sso_settings["sso_login"]["require_two_factor"] && isset($_REQUEST["reset_two_factor_method"]) && $_REQUEST["reset_two_factor_method"] === "Yes")  $userinfo["two_factor_method"] = "";
+
 					if (BB_GetPageMessageType() != "error")
 					{
 						try
@@ -988,6 +991,33 @@
 					"options" => $options,
 					"select" => BB_GetValue("reset_password", "0")
 				);
+
+				// Two-factor authentication.
+				$options = array("" => "None");
+				foreach ($this->activemodules as $key => &$instance)
+				{
+					$name = $instance->GetTwoFactorName();
+					if ($name !== false)  $options[$key] = $name;
+				}
+				if (count($options))
+				{
+					$contentopts["fields"][] = array(
+						"title" => "Two-Factor Authentication Method",
+						"type" => "static",
+						"value" => (isset($options[$userinfo["two_factor_method"]]) ? $options[$userinfo["two_factor_method"]] : $userinfo["two_factor_method"])
+					);
+
+					if (!$sso_settings["sso_login"]["require_two_factor"])
+					{
+						$contentopts["fields"][] = array(
+							"type" => "checkbox",
+							"name" => "reset_two_factor_method",
+							"value" => "Yes",
+							"display" => "Clear two-factor authentication method",
+							"check" => false
+						);
+					}
+				}
 
 				foreach ($g_sso_login_modules as $key => $info)
 				{
