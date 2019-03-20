@@ -322,11 +322,11 @@
 				$url = "https://www.linkedin.com/uas/oauth2/accessToken";
 				$options = array(
 					"postvars" => array(
-						"grant_type" => "authorization_code",
 						"code" => $_REQUEST["code"],
 						"client_id" => $sso_settings["sso_linkedin"]["client_id"],
 						"client_secret" => $sso_settings["sso_linkedin"]["client_secret"],
-						"redirect_uri" => $redirect_uri
+						"redirect_uri" => $redirect_uri,
+						"grant_type" => "authorization_code"
 					)
 				);
 				$web = new WebBrowser();
