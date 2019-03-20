@@ -145,6 +145,29 @@
 		$sso_db_ipcache = SSO_DB_PREFIX . "ipcache";
 	}
 
+	function SSO_ProcessInfoDefaults($info, $defaults)
+	{
+		foreach ($defaults as $key => $val)
+		{
+			if (!isset($info[$key]))  $info[$key] = $val;
+		}
+
+		return $info;
+	}
+
+	function SSO_LoadAPIKeyInfo($info)
+	{
+		$defaults = array(
+			"key" => "", "type" => "normal", "purpose" => "", "url" => "",
+			"impersonation" => false, "clock_drift" => 0,
+			"field_map" => array(), "static_field_map" => "", "tag_map" => array(),
+			"patterns" => "*:*:*:*:*:*:*:*",
+			"oauth2_redirects" => ""
+		);
+
+		return SSO_ProcessInfoDefaults($info, $defaults);
+	}
+
 	function SSO_LoadFields($loadselect)
 	{
 		global $sso_fields, $sso_select_fields, $sso_db, $sso_db_fields;
@@ -1069,7 +1092,7 @@
 				if ($data === false)  $data = $_COOKIE["sso_server_ns"];
 				$result = @base64_decode($data);
 				if ($result !== false)  $result = ExtendedAES::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true));
-				if ($result !== false)  $result = @unserialize($result);
+				if ($result !== false)  $result = @json_decode($result, true);
 
 				if ($result !== false)  return $result;
 			}
@@ -1081,13 +1104,46 @@
 				if ($data === false)  $data = $_COOKIE["sso_server_ns2"];
 				$result = @base64_decode($data);
 				if ($result !== false)  $result = ExtendedAES::ExtractDataPacket($result, pack("H*", $sso_settings[""]["namespacekey3"]), array("mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true));
-				if ($result !== false)  $result = @unserialize($result);
+				if ($result !== false)  $result = @json_decode($result, true);
 
 				if ($result !== false)  return $result;
 			}
 		}
 
 		return array();
+	}
+
+	function SSO_SaveNamespaces($realnamespaces, $exposednamespaces)
+	{
+		global $sso_settings, $sso_rng;
+
+		// Set the namespace cookie.
+		if (isset($sso_settings[""]["namespacekey2"]))
+		{
+			$data = json_encode($realnamespaces, JSON_UNESCAPED_SLASHES);
+			$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true)));
+			SetCookieFixDomain("sso_server_ns", $data, 0, "", "", SSO_IsSSLRequest(), true);
+		}
+
+		// Set the exposed namespace cookie if the option is enabled.
+		if (isset($sso_settings[""]["expose_namespaces"]) && $sso_settings[""]["expose_namespaces"] && isset($sso_settings[""]["namespacekey4"]))
+		{
+			$data = json_encode($exposednamespaces, JSON_UNESCAPED_SLASHES);
+			$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey3"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true)));
+			$host = str_replace(array("http://", "https://"), "", BB_GetRequestHost());
+			SetCookieFixDomain("sso_server_ns2", $data, 0, "/", $host, false, true);
+		}
+	}
+
+	function SSO_RemoveSavedNamespace($namespace)
+	{
+		$realnamespaces = SSO_LoadNamespaces(true);
+		$exposednamespaces = SSO_LoadNamespaces(false);
+
+		unset($realnamespaces[$namespace]);
+		unset($exposednamespaces[$namespace]);
+
+		SSO_SaveNamespaces($realnamespaces, $exposednamespaces);
 	}
 
 	// Automatically activate a user who is already activated within the same API key namespace.
@@ -1099,13 +1155,19 @@
 
 		if (!isset($sso_namespaces[$sso_apirow->namespace]))  return false;
 
+		if (isset($_REQUEST["use_namespaces"]) && $_REQUEST["use_namespaces"] == 0)
+		{
+			SSO_RemoveSavedNamespace($sso_apirow->namespace);
+
+			return false;
+		}
+
 		if ($sso_session_info["initmsg"] != "")
 		{
 			$initmsg = base64_decode($sso_session_info["initmsg"]);
 			if ($initmsg == "insufficient_permissions")
 			{
-				unset($sso_namespaces[$sso_apirow->namespace]);
-				SetCookieFixDomain("sso_server_ns", base64_encode(serialize($sso_namespaces)), 0, "", "", SSO_IsSSLRequest(), true);
+				SSO_RemoveSavedNamespace($sso_apirow->namespace);
 
 				return false;
 			}
@@ -1124,8 +1186,7 @@
 
 			if ($sessionrow === false)
 			{
-				unset($sso_namespaces[$sso_apirow->namespace]);
-				SetCookieFixDomain("sso_server_ns", base64_encode(serialize($sso_namespaces)), 0, "", "", SSO_IsSSLRequest(), true);
+				SSO_RemoveSavedNamespace($sso_apirow->namespace);
 
 				return false;
 			}
@@ -1303,28 +1364,14 @@ document.location.replace('<?php echo BB_JSSafe($url); ?>');
 			$redirect = str_replace(array("\r", "\n"), "", base64_decode($sso_session_info["url"]));
 			$redirect .= (strpos($redirect, "?") === false ? "?" : "&") . "from_sso_server=1&sso_id=" . urlencode($sso_session_info["new_id2"]) . "&sso_id2=" . urlencode($_REQUEST["sso_id"]);
 
-			// Set the namespace cookie.
-			if (isset($sso_settings[""]["namespacekey2"]))
-			{
-				$namespaces = SSO_LoadNamespaces(true);
+			// Set the namespace cookie(s) so future application sign ins happen automatically.
+			$realnamespaces = SSO_LoadNamespaces(true);
+			$realnamespaces[$sso_apirow->namespace] = $_COOKIE["sso_server_id2"];
 
-				$namespaces[$sso_apirow->namespace] = $_COOKIE["sso_server_id2"];
-				$data = serialize($namespaces);
-				$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv"]), "key2" => pack("H*", $sso_settings[""]["namespacekey2"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv2"]), "lightweight" => true)));
-				SetCookieFixDomain("sso_server_ns", $data, 0, "", "", SSO_IsSSLRequest(), true);
-			}
+			$exposednamespaces = SSO_LoadNamespaces(false);
+			$exposednamespaces[$sso_apirow->namespace] = $sso_sessionrow2->id;
 
-			// Set the exposed namespace cookie if the option is enabled.
-			if (isset($sso_settings[""]["expose_namespaces"]) && $sso_settings[""]["expose_namespaces"] && isset($sso_settings[""]["namespacekey4"]))
-			{
-				$namespaces = SSO_LoadNamespaces(false);
-
-				$namespaces[$sso_apirow->namespace] = $sso_sessionrow2->id;
-				$data = serialize($namespaces);
-				$data = base64_encode(ExtendedAES::CreateDataPacket($data, pack("H*", $sso_settings[""]["namespacekey3"]), array("prefix" => $sso_rng->GenerateString(), "mode" => "CBC", "iv" => pack("H*", $sso_settings[""]["namespaceiv3"]), "key2" => pack("H*", $sso_settings[""]["namespacekey4"]), "iv2" => pack("H*", $sso_settings[""]["namespaceiv4"]), "lightweight" => true)));
-				$host = str_replace(array("http://", "https://"), "", BB_GetRequestHost());
-				SetCookieFixDomain("sso_server_ns2", $data, 0, "/", $host, false, true);
-			}
+			SSO_SaveNamespaces($realnamespaces, $exposednamespaces);
 
 			// Redirect back to the client.
 			SSO_ExternalRedirect($redirect, true);

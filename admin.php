@@ -1051,10 +1051,7 @@ div.formfields div.formitem table div.search_field_val b {
 
 		if ($row)
 		{
-			$info = unserialize($row->info);
-			if (!isset($info["type"]))  $info["type"] = "normal";
-			if (!isset($info["impersonation"]))  $info["impersonation"] = false;
-			if (!isset($info["clock_drift"]))  $info["clock_drift"] = 0;
+			$info = SSO_LoadAPIKeyInfo(unserialize($row->info));
 
 			if (isset($_REQUEST["purpose"]))
 			{
@@ -1080,17 +1077,17 @@ div.formfields div.formitem table div.search_field_val b {
 						}
 					}
 
-					$info = array(
-						"key" => $secretkey,
-						"type" => $_REQUEST["type"],
-						"purpose" => $_REQUEST["purpose"],
-						"url" => $_REQUEST["url"],
-						"impersonation" => (bool)(int)$_REQUEST["impersonation"],
-						"clock_drift" => (int)$_REQUEST["clock_drift"],
-						"field_map" => array(),
-						"tag_map" => array(),
-						"patterns" => $_REQUEST["patterns"]
-					);
+					$info["key"] = $secretkey;
+					$info["type"] = $_REQUEST["type"];
+					$info["purpose"] = $_REQUEST["purpose"];
+					$info["url"] = $_REQUEST["url"];
+					$info["impersonation"] = (bool)(int)$_REQUEST["impersonation"];
+					$info["clock_drift"] = (int)$_REQUEST["clock_drift"];
+					$info["field_map"] = array();
+					$info["tag_map"] = array();
+					$info["patterns"] = $_REQUEST["patterns"];
+					$info["oauth2_redirects"] = $_REQUEST["oauth2_redirects"];
+					$info["static_field_map"] = $_REQUEST["static_field_map"];
 
 					foreach ($sso_fields as $key => $encrypted)
 					{
@@ -1138,6 +1135,11 @@ div.formfields div.formitem table div.search_field_val b {
 						"value" => (function_exists("AdminHook_GetEndpointURL") ? AdminHook_GetEndpointURL() : SSO_ENDPOINT_URL)
 					),
 					array(
+						"title" => "OAuth2 URL",
+						"type" => "static",
+						"value" => SSO_LOGIN_URL . "oauth2/"
+					),
+					array(
 						"title" => "API Key",
 						"type" => "static",
 						"value" => $row->apikey . "-" . $row->id
@@ -1145,8 +1147,13 @@ div.formfields div.formitem table div.search_field_val b {
 					array(
 						"title" => "Secret Key",
 						"type" => "custom",
-						"value" => "<div class=\"textareawrap\"><textarea class=\"text\" style=\"background-color: #EEEEEE;\" rows=\"3\" readonly>" . htmlspecialchars($info["key"]) . "</textarea></div>",
-						"htmldesc" => "<input type=\"checkbox\" id=\"reset_key\" name=\"reset_key\" value=\"yes\" /> <label for=\"reset_key\">" . BB_Translate("Generate new secret key") . "</label>"
+						"value" => "<div class=\"textareawrap\"><textarea class=\"text\" style=\"background-color: #EEEEEE;\" rows=\"3\" readonly>" . htmlspecialchars($info["key"]) . "</textarea></div>"
+					),
+					array(
+						"title" => "OAuth2 Client Secret",
+						"type" => "custom",
+						"value" => "<div class=\"textareawrap\"><textarea class=\"text\" style=\"background-color: #EEEEEE;\" rows=\"3\" readonly>" . htmlspecialchars(hash_hmac((function_exists("hash_algos") && in_array("sha256", hash_algos()) ? "sha256" : "sha1"), $row->apikey . "-" . $row->id, $info["key"])) . "</textarea></div>",
+						"htmldesc" => "<input type=\"checkbox\" id=\"reset_key\" name=\"reset_key\" value=\"yes\" /> <label for=\"reset_key\">" . BB_Translate("Generate new secret keys") . "</label>"
 					),
 					array(
 						"title" => "Symmetric Cipher",
@@ -1215,6 +1222,22 @@ div.formfields div.formitem table div.search_field_val b {
 						"name" => "patterns",
 						"value" => BB_GetValue("patterns", $info["patterns"]),
 						"desc" => "A whitelist of IP address patterns that allows access to this API key.  One pattern per line.  (e.g. '10.0.0-15,17.*')"
+					),
+					array(
+						"title" => "OAuth2 Redirect URIs",
+						"type" => "textarea",
+						"height" => "150px",
+						"name" => "oauth2_redirects",
+						"value" => BB_GetValue("oauth2_redirects", $info["oauth2_redirects"]),
+						"desc" => "A whitelist of allowed redirect URIs.  One redirect URI per line.  The OAuth2 shim is disabled for an API key when this field is empty."
+					),
+					array(
+						"title" => "Static Fields",
+						"type" => "textarea",
+						"height" => "150px",
+						"name" => "static_field_map",
+						"value" => BB_GetValue("static_field_map", $info["static_field_map"]),
+						"desc" => "A set of key-value pairs that always present the same values for this API key.  One key-value pair per line.  Useful for delivering expected fields to third-party applications that don't have a specific field in this system."
 					)
 				),
 				"submit" => "Save",
@@ -1299,17 +1322,10 @@ div.formfields div.formitem table div.search_field_val b {
 					$secretkey .= ":" . $sso_rng->GenerateToken($_REQUEST["cipher"] == "aes256" ? 32 : 8);
 				}
 
-				$info = array(
-					"key" => $secretkey,
-					"type" => "normal",
-					"purpose" => $_REQUEST["purpose"],
-					"url" => $_REQUEST["url"],
-					"impersonation" => false,
-					"clock_drift" => 0,
-					"field_map" => array(),
-					"tag_map" => array(),
-					"patterns" => "*:*:*:*:*:*:*:*"
-				);
+				$info = SSO_LoadAPIKeyInfo(array());
+				$info["key"] = $secretkey;
+				$info["purpose"] = $_REQUEST["purpose"];
+				$info["url"] = $_REQUEST["url"];
 
 				$sso_db->Query("INSERT", array($sso_db_apikeys, array(
 					"user_id" => $sso_user_id,

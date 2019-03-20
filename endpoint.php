@@ -107,8 +107,7 @@
 		), $sso_db_apikeys, $apikey[1], $apikey[0]);
 
 		if ($sso_apirow === false)  SSO_EndpointError("Invalid API key specified.");
-		$sso_apikey_info = unserialize($sso_apirow->info);
-		if (!isset($sso_apikey_info["type"]))  $sso_apikey_info["type"] = "normal";
+		$sso_apikey_info = SSO_LoadAPIKeyInfo(unserialize($sso_apirow->info));
 
 		// Check the IP address against API key patterns.
 		if (!SSO_IsIPAllowed($sso_apikey_info))  SSO_EndpointError("Invalid API key IP address.");
@@ -158,7 +157,7 @@
 
 		// Determine system clock drift.
 		$sso_clockdrift = (isset($sso_settings[""]["clock_drift"]) ? $sso_settings[""]["clock_drift"] : 300);
-		if (isset($sso_apikey_info["clock_drift"]) && $sso_apikey_info["clock_drift"] > 0)  $sso_clockdrift = $sso_apikey_info["clock_drift"];
+		if ($sso_apikey_info["clock_drift"] > 0)  $sso_clockdrift = $sso_apikey_info["clock_drift"];
 
 		// Check the timestamp of the packet.  The default allows for 5 minutes of clock drift.
 		$ts = time();
@@ -408,6 +407,14 @@
 			$sso_providers[$sso_provider]->Init();
 			$protectedfields = $sso_providers[$sso_provider]->GetProtectedFields();
 
+			// Static fields are protected too.
+			$lines = explode("\n", $sso_apikey_info["static_field_map"]);
+			foreach ($lines as $line)
+			{
+				$pos = strpos($line, "=");
+				if ($pos !== false)  $protectedfields[trim(substr($line, 0, $pos))] = true;
+			}
+
 			// Calculate API key field mapping.
 			$fieldmap = array();
 			$writable = array();
@@ -428,6 +435,14 @@
 				}
 
 				$fieldmap[$info["name"]] = (isset($sso_user_info[$key]) ? $sso_user_info[$key] : "");
+			}
+
+			// Apply static fields.
+			$lines = explode("\n", $sso_apikey_info["static_field_map"]);
+			foreach ($lines as $line)
+			{
+				$pos = strpos($line, "=");
+				if ($pos !== false)  $fieldmap[trim(substr($line, 0, $pos))] = trim(substr($line, $pos + 1));
 			}
 
 			// Calculate API key tag mapping.

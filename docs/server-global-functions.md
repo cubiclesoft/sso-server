@@ -583,6 +583,33 @@ Returns:  An array containing the namespace session information.
 
 This global function reads the encrypted browser cookie or submitted data and attempts to decrypt it into a namespace array.  The SSO server only cookie (sso_server_ns) contains a complete session ID while the optional subdomain cookie (sso_server_ns2) only contains the integer portion of the session ID.
 
+SSO_SaveNamespaces($realnamespaces, $exposednamespaces)
+-------------------------------------------------------
+
+Access:  global
+
+Parameters:
+
+* $realnamespaces - An array containing the results of a `SSO_LoadNamespaces(true)` call.
+* $exposednamespaces - An array containing the results of a `SSO_LoadNamespaces(false)` call.
+
+Returns:  Nothing.
+
+This global function saves the signed in namespaces to cookies if the relevant features are enabled/relevant.
+
+SSO_RemoveSavedNamespace($namespace)
+------------------------------------
+
+Access:  global
+
+Parameters:
+
+* $namespace - A string containing a namespace to remove.
+
+Returns:  Nothing.
+
+This global function removes a signed in namespace and calls `SSO_SaveNamespaces()` to update the browser cookies.
+
 SSO_ActivateNamespaceUser()
 ---------------------------
 
@@ -590,9 +617,9 @@ Access:  global
 
 Parameters: None.
 
-Returns: A boolean of false if the namespace is invalid or activation fails. The browser is redirected on success.
+Returns: A boolean of false if the namespace is invalid or activation fails.  The browser is redirected on success.
 
-This global function locates the namespace of the current API key, looks for an existing session in the same namespace, and activates a new session if a match is found.
+This global function locates the namespace of the current API key, looks for an existing session in the same namespace, and activates a new session if a match is found.  The behavior can be overridden by setting `use_namespaces` to 0 in the request.
 
 SSO_ActivateUser($id, $entropy, $info, $created = false, $automate = false, $activatesession = true)
 ----------------------------------------------------------------------------------------------------
@@ -602,7 +629,7 @@ Access:  global
 Parameters:
 
 * $id - A string containing the provider ID for the user being activated.
-* $entropy - A string containing optional, extra entropy.
+* $entropy - A string containing optional, extra entropy.  No longer used by this function and MAY be removed in the future.
 * $info - An array containing user information.
 * $created - A boolean of false or a UNIX timestamp (that will be GMT encoded) to set the 'created' field mapping with.
 * $automate - A boolean that specifies if the validation phase should be automated (Default is false).
