@@ -999,7 +999,7 @@
 					$name = $instance->GetTwoFactorName();
 					if ($name !== false)  $options[$key] = $name;
 				}
-				if (count($options))
+				if (count($options) && isset($userinfo["two_factor_method"]))
 				{
 					$contentopts["fields"][] = array(
 						"title" => "Two-Factor Authentication Method",
