@@ -24,8 +24,9 @@ SSO Server Features
 * Simple API key setup and usage.  Easily map server fields to expected client fields.  API keys can be revoked or renewed in the event of a security breach.
 * API key namespaces allow an active sign in to be shared across applications.
 * User impersonation support.  One-click sign in.  Disabled by default but straightforward to set up if needed.
-* Comes with several sign in providers: Generic Login, Facebook, Google, LinkedIn, LDAP (Active Directory), and Remote Login.
+* Comes with several sign in providers:  Generic Login, Facebook, Google, LinkedIn, LDAP (Active Directory), and Remote Login.
 * The Remote Login provider allows for signing in using a trusted host behind a firewall.  For example, sign in with LDAP or Active Directory via VPN and push the user's information to the SSO Server via a native SSO Client call.
+* Supports simple third-party software integration via an OAuth2 shim.
 * Carefully crafted defenses to deal with [CSRF/XSRF attacks](http://en.wikipedia.org/wiki/Cross-site_request_forgery), [timing attacks](http://en.wikipedia.org/wiki/Timing_attack), [session fixation attacks](http://en.wikipedia.org/wiki/Session_fixation), etc.
 * HTTP [DNSRBL](http://en.wikipedia.org/wiki/DNSBL) IP address banning support.
 * Geolocation IP address banning and automatic location mapping support (requires uploading an extra 15MB+ database).
