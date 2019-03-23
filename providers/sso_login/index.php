@@ -1,6 +1,6 @@
 <?php
 	// SSO Generic Login Provider
-	// (C) 2015 CubicleSoft.  All Rights Reserved.
+	// (C) 2019 CubicleSoft.  All Rights Reserved.
 
 	if (!defined("SSO_FILE"))  exit();
 
@@ -2337,7 +2337,7 @@ SSO_Vars = {
 </div>
 </div>
 <?php
-
+					echo $sso_footer;
 				}
 			}
 			else if (isset($_REQUEST["sso_login_action"]) && $_REQUEST["sso_login_action"] == "recover2" && isset($_REQUEST["sso_method"]) && $this->IsRecoveryAllowed())
