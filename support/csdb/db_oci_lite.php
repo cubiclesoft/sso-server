@@ -5,11 +5,11 @@
 	// Thank you for your contribution!
 	//
 	// Used with permission under the CubicleSoft dual MIT/LGPL license.
-	// Some portions (C) 2015 CubicleSoft.  All Rights Reserved.
+	// Some portions (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	// This is an early beta - use at your own risk!
 
-	if (!class_exists("CSDB"))  exit();
+	if (!class_exists("CSDB", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/db.php";
 
 	class CSDB_oci_lite extends CSDB
 	{

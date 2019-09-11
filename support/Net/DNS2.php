@@ -5,7 +5,7 @@ spl_autoload_register('Net_DNS2::autoload');
 class Net_DNS2
 {
 
-	const VERSION = '1.4.2';
+	const VERSION = '1.4.4';
 
 	const RESOLV_CONF = '/etc/resolv.conf';
 
@@ -52,7 +52,7 @@ class Net_DNS2
 
 	public $nameservers = array();
 
-	protected $sock = array('udp' => array(), 'tcp' => array());
+	protected $sock = array(Net_DNS2_Socket::SOCK_DGRAM => array(), Net_DNS2_Socket::SOCK_STREAM => array());
 
 	protected $sockets_enabled = false;
 
@@ -527,43 +527,9 @@ class Net_DNS2
 
 	public static function expandIPv6($_address)
 	{
-		if (strpos($_address, '::') !== false) {
+		$hex = unpack('H*hex', inet_pton($_address));
 
-			$part       = explode('::', $_address);
-			$part[0]    = explode(':', $part[0]);
-			$part[1]    = explode(':', $part[1]);
-
-			$missing = array();
-
-			$x = (8 - (count($part[0]) + count($part[1])));
-			for ($i = 0; $i < $x; $i++) {
-
-				array_push($missing, '0000');
-			}
-
-			$missing    = array_merge($part[0], $missing);
-			$part       = array_merge($missing, $part[1]);
-
-		} else {
-
-			$part = explode(':', $_address);
-		}
-
-		foreach ($part as &$p) {
-			while (strlen($p) < 4) {
-				$p = '0' . $p;
-			}
-		}
-
-		unset($p);
-
-		$result = implode(':', $part);
-
-		if (strlen($result) == 39) {
-			return $result;
-		} else {
-			return false;
-		}
+		return substr(preg_replace('/([A-f0-9]{4})/', "$1:", $hex['hex']), 0, -1);
 	}
 
 	protected function sendPacket(Net_DNS2_Packet $request, $use_tcp)
@@ -603,7 +569,9 @@ class Net_DNS2
 			//
 
 			//
-			$ns = each($this->nameservers);
+			$ns = current($this->nameservers);
+			next($this->nameservers);
+
 			if ($ns === false) {
 
 				if (is_null($this->last_exception) == false) {
@@ -617,8 +585,6 @@ class Net_DNS2
 					);
 				}
 			}
-
-			$ns = $ns[1];
 
 			//
 
@@ -732,6 +698,34 @@ class Net_DNS2
 		return $response;
 	}
 
+	private function generateError($_proto, $_ns, $_error)
+	{
+		if (isset($this->sock[$_proto][$_ns]) == false)
+		{
+			throw new Net_DNS2_Exception('invalid socket referenced', Net_DNS2_Lookups::E_NS_INVALID_SOCKET);
+		}
+
+		//
+
+		//
+		$last_error = $this->sock[$_proto][$_ns]->last_error;
+
+		//
+
+		//
+		$this->sock[$_proto][$_ns]->close();
+
+		//
+
+		//
+		unset($this->sock[$_proto][$_ns]);
+
+		//
+
+		//
+		throw new Net_DNS2_Exception($last_error, $_error);
+	}
+
 	private function sendTCPRequest($_ns, $_data, $_axfr = false)
 	{
 		//
@@ -742,8 +736,8 @@ class Net_DNS2
 		//
 
 		//
-		if ( (!isset($this->sock['tcp'][$_ns]))
-			|| (!($this->sock['tcp'][$_ns] instanceof Net_DNS2_Socket))
+		if ( (!isset($this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]))
+			|| (!($this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns] instanceof Net_DNS2_Socket))
 		) {
 
 			//
@@ -751,7 +745,7 @@ class Net_DNS2
 			//
 			if ($this->sockets_enabled === true) {
 
-				$this->sock['tcp'][$_ns] = new Net_DNS2_Socket_Sockets(
+				$this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns] = new Net_DNS2_Socket_Sockets(
 					Net_DNS2_Socket::SOCK_STREAM, $_ns, $this->dns_port, $this->timeout
 				);
 
@@ -760,7 +754,7 @@ class Net_DNS2
 			//
 			} else {
 
-				$this->sock['tcp'][$_ns] = new Net_DNS2_Socket_Streams(
+				$this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns] = new Net_DNS2_Socket_Streams(
 					Net_DNS2_Socket::SOCK_STREAM, $_ns, $this->dns_port, $this->timeout
 				);
 			}
@@ -770,7 +764,7 @@ class Net_DNS2
 			//
 			if (strlen($this->local_host) > 0) {
 
-				$this->sock['tcp'][$_ns]->bindAddress(
+				$this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]->bindAddress(
 					$this->local_host, $this->local_port
 				);
 			}
@@ -778,22 +772,18 @@ class Net_DNS2
 			//
 
 			//
-			if ($this->sock['tcp'][$_ns]->open() === false) {
+			if ($this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]->open() === false) {
 
-				throw new Net_DNS2_Exception(
-					$this->sock['tcp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-				);
+				$this->generateError(Net_DNS2_Socket::SOCK_STREAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 			}
 		}
 
 		//
 
 		//
-		if ($this->sock['tcp'][$_ns]->write($_data) === false) {
+		if ($this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]->write($_data) === false) {
 
-			throw new Net_DNS2_Exception(
-				$this->sock['tcp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-			);
+			$this->generateError(Net_DNS2_Socket::SOCK_STREAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 		}
 
 		//
@@ -815,12 +805,17 @@ class Net_DNS2
 				//
 
 				//
-				$result = $this->sock['tcp'][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
+				$result = $this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
 				if ( ($result === false) || ($size < Net_DNS2_Lookups::DNS_HEADER_SIZE) ) {
 
-					throw new Net_DNS2_Exception(
-						$this->sock['tcp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-					);
+					//
+
+					//
+
+					//
+
+					//
+					$this->generateError(Net_DNS2_Socket::SOCK_STREAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 				}
 
 				//
@@ -898,12 +893,10 @@ class Net_DNS2
 		//
 		} else {
 
-			$result = $this->sock['tcp'][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
+			$result = $this->sock[Net_DNS2_Socket::SOCK_STREAM][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
 			if ( ($result === false) || ($size < Net_DNS2_Lookups::DNS_HEADER_SIZE) ) {
 
-				throw new Net_DNS2_Exception(
-					$this->sock['tcp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-				);
+				$this->generateError(Net_DNS2_Socket::SOCK_STREAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 			}
 
 			//
@@ -939,8 +932,8 @@ class Net_DNS2
 		//
 
 		//
-		if ( (!isset($this->sock['udp'][$_ns]))
-			|| (!($this->sock['udp'][$_ns] instanceof Net_DNS2_Socket))
+		if ( (!isset($this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns]))
+			|| (!($this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns] instanceof Net_DNS2_Socket))
 		) {
 
 			//
@@ -948,7 +941,7 @@ class Net_DNS2
 			//
 			if ($this->sockets_enabled === true) {
 
-				$this->sock['udp'][$_ns] = new Net_DNS2_Socket_Sockets(
+				$this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns] = new Net_DNS2_Socket_Sockets(
 					Net_DNS2_Socket::SOCK_DGRAM, $_ns, $this->dns_port, $this->timeout
 				);
 
@@ -957,7 +950,7 @@ class Net_DNS2
 			//
 			} else {
 
-				$this->sock['udp'][$_ns] = new Net_DNS2_Socket_Streams(
+				$this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns] = new Net_DNS2_Socket_Streams(
 					Net_DNS2_Socket::SOCK_DGRAM, $_ns, $this->dns_port, $this->timeout
 				);
 			}
@@ -967,7 +960,7 @@ class Net_DNS2
 			//
 			if (strlen($this->local_host) > 0) {
 
-				$this->sock['udp'][$_ns]->bindAddress(
+				$this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns]->bindAddress(
 					$this->local_host, $this->local_port
 				);
 			}
@@ -975,22 +968,18 @@ class Net_DNS2
 			//
 
 			//
-			if ($this->sock['udp'][$_ns]->open() === false) {
+			if ($this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns]->open() === false) {
 
-				throw new Net_DNS2_Exception(
-					$this->sock['udp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-				);
+				$this->generateError(Net_DNS2_Socket::SOCK_DGRAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 			}
 		}
 
 		//
 
 		//
-		if ($this->sock['udp'][$_ns]->write($_data) === false) {
+		if ($this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns]->write($_data) === false) {
 
-			throw new Net_DNS2_Exception(
-				$this->sock['udp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-			);
+			$this->generateError(Net_DNS2_Socket::SOCK_DGRAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 		}
 
 		//
@@ -998,12 +987,10 @@ class Net_DNS2
 		//
 		$size = 0;
 
-		$result = $this->sock['udp'][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
+		$result = $this->sock[Net_DNS2_Socket::SOCK_DGRAM][$_ns]->read($size, ($this->dnssec == true) ? $this->dnssec_payload_size : Net_DNS2_Lookups::DNS_MAX_UDP_SIZE);
 		if (( $result === false) || ($size < Net_DNS2_Lookups::DNS_HEADER_SIZE)) {
 
-			throw new Net_DNS2_Exception(
-				$this->sock['udp'][$_ns]->last_error, Net_DNS2_Lookups::E_NS_SOCKET_FAILED
-			);
+			$this->generateError(Net_DNS2_Socket::SOCK_DGRAM, $_ns, Net_DNS2_Lookups::E_NS_SOCKET_FAILED);
 		}
 
 		//
@@ -1037,7 +1024,7 @@ class Net_DNS2_BitMap
 	public static function bitMapToArray($data)
 	{
 		if (strlen($data) == 0) {
-			return null;
+			return array();
 		}
 
 		$output = array();
@@ -1091,7 +1078,7 @@ class Net_DNS2_BitMap
 	public static function arrayToBitMap(array $data)
 	{
 		if (count($data) == 0) {
-			return null;
+			return '';
 		}
 
 		$current_window = 0;
@@ -1196,6 +1183,8 @@ class Net_DNS2_Cache
 	protected $cache_size = 0;
 
 	protected $cache_serializer;
+
+	protected $cache_opened = false;
 
 	public function has($key)
 	{
@@ -1539,7 +1528,9 @@ class Net_DNS2_Header
 
 	public function get(Net_DNS2_Packet &$packet)
 	{
-		$data = pack('n', $this->id) .
+		$packet->offset += Net_DNS2_Lookups::DNS_HEADER_SIZE;
+
+		return pack('n', $this->id) .
 			chr(
 				($this->qr << 7) | ($this->opcode << 3) |
 				($this->aa << 2) | ($this->tc << 1) | ($this->rd)
@@ -1547,14 +1538,7 @@ class Net_DNS2_Header
 			chr(
 				($this->ra << 7) | ($this->ad << 5) | ($this->cd << 4) | $this->rcode
 			) .
-			chr($this->qdcount << 8) . chr($this->qdcount) .
-			chr($this->ancount << 8) . chr($this->ancount) .
-			chr($this->nscount << 8) . chr($this->nscount) .
-			chr($this->arcount << 8) . chr($this->arcount);
-
-		$packet->offset += Net_DNS2_Lookups::DNS_HEADER_SIZE;
-
-		return $data;
+			pack('n4', $this->qdcount, $this->ancount, $this->nscount, $this->arcount);
 	}
 }
 
@@ -1612,12 +1596,14 @@ class Net_DNS2_Lookups
 	const RCODE_NOTZONE         = 10;
 
 	const RCODE_BADSIG          = 16;
+	const RCODE_BADVERS         = 16;
 	const RCODE_BADKEY          = 17;
 	const RCODE_BADTIME         = 18;
 	const RCODE_BADMODE         = 19;
 	const RCODE_BADNAME         = 20;
 	const RCODE_BADALG          = 21;
 	const RCODE_BADTRUNC        = 22;
+	const RCODE_BADCOOKIE       = 23;
 
 	const E_NONE                = 0;
 	const E_DNS_FORMERR         = self::RCODE_FORMERR;
@@ -1638,11 +1624,13 @@ class Net_DNS2_Lookups
 	const E_DNS_BADNAME         = self::RCODE_BADNAME;
 	const E_DNS_BADALG          = self::RCODE_BADALG;
 	const E_DNS_BADTRUNC        = self::RCODE_BADTRUNC;
+	const E_DNS_BADCOOKIE       = self::RCODE_BADCOOKIE;
 
 	const E_NS_INVALID_FILE     = 200;
 	const E_NS_INVALID_ENTRY    = 201;
 	const E_NS_FAILED           = 202;
 	const E_NS_SOCKET_FAILED    = 203;
+	const E_NS_INVALID_SOCKET   = 204;
 
 	const E_PACKET_INVALID      = 300;
 	const E_PARSE_ERROR         = 301;
@@ -1659,6 +1647,21 @@ class Net_DNS2_Lookups
 	const E_CACHE_SHM_FILE      = 501;
 	const E_CACHE_SHM_UNAVAIL   = 502;
 
+	const EDNS0_OPT_LLQ             = 1;
+	const EDNS0_OPT_UL              = 2;
+	const EDNS0_OPT_NSID            = 3;
+
+	const EDNS0_OPT_DAU             = 5;
+	const EDNS0_OPT_DHU             = 6;
+	const EDNS0_OPT_N3U             = 7;
+	const EDNS0_OPT_CLIENT_SUBNET   = 8;
+	const EDNS0_OPT_EXPIRE          = 9;
+	const EDNS0_OPT_COOKIE          = 10;
+	const EDNS0_OPT_TCP_KEEPALIVE   = 11;
+	const EDNS0_OPT_PADDING         = 12;
+	const EDNS0_OPT_CHAIN           = 13;
+	const EDNS0_OPT_KEY_TAG         = 14;
+
 	const DNSSEC_ALGORITHM_RES                  = 0;
 	const DNSSEC_ALGORITHM_RSAMD5               = 1;
 	const DNSSEC_ALGORITHM_DH                   = 2;
@@ -1670,6 +1673,10 @@ class Net_DNS2_Lookups
 	const DNSSEC_ALGORITHM_RSASHA256	        = 8;
 	const DNSSEC_ALGORITHM_RSASHA512            = 10;
 	const DNSSEC_ALGORITHM_ECCGOST              = 12;
+	const DNSSEC_ALGORITHM_ECDSAP256SHA256      = 13;
+	const DNSSEC_ALGORITHM_ECDSAP384SHA384      = 14;
+	const DNSSEC_ALGORITHM_ED25519              = 15;
+	const DNSSEC_ALGORITHM_ED448                = 16;
 	const DNSSEC_ALGORITHM_INDIRECT             = 252;
 	const DNSSEC_ALGORITHM_PRIVATEDNS           = 253;
 	const DNSSEC_ALGORITHM_PRIVATEOID           = 254;
@@ -1735,6 +1742,7 @@ class Net_DNS2_Lookups
 		'NSEC3'         => 50,
 		'NSEC3PARAM'    => 51,
 		'TLSA'          => 52,
+		'SMIMEA'        => 53,
 
 		'HIP'           => 55,
 		'NINFO'         => 56,
@@ -1766,9 +1774,11 @@ class Net_DNS2_Lookups
 		'ANY'           => 255,
 		'URI'           => 256,
 		'CAA'           => 257,
+		'AVC'           => 258,
 
 		'TA'            => 32768,
-		'DLV'           => 32769
+		'DLV'           => 32769,
+		'TYPE65534'     => 65534
 	);
 
 	public static $rr_qtypes_by_id = array();
@@ -1832,6 +1842,7 @@ class Net_DNS2_Lookups
 		50          => 'Net_DNS2_RR_NSEC3',
 		51          => 'Net_DNS2_RR_NSEC3PARAM',
 		52          => 'Net_DNS2_RR_TLSA',
+		53          => 'Net_DNS2_RR_SMIMEA',
 		55          => 'Net_DNS2_RR_HIP',
 		58          => 'Net_DNS2_RR_TALINK',
 		59          => 'Net_DNS2_RR_CDS',
@@ -1852,8 +1863,10 @@ class Net_DNS2_Lookups
 		255         => 'Net_DNS2_RR_ANY',
 		256         => 'Net_DNS2_RR_URI',
 		257         => 'Net_DNS2_RR_CAA',
+		258         => 'Net_DNS2_RR_AVC',
 		32768       => 'Net_DNS2_RR_TA',
-		32769       => 'Net_DNS2_RR_DLV'
+		32769       => 'Net_DNS2_RR_DLV',
+		65534       => 'Net_DNS2_RR_TYPE65534'
 	);
 
 	public static $classes_by_id = array();
@@ -1903,6 +1916,10 @@ class Net_DNS2_Lookups
 		self::DNSSEC_ALGORITHM_RSASHA256            => 'RSASHA256',
 		self::DNSSEC_ALGORITHM_RSASHA512            => 'RSASHA512',
 		self::DNSSEC_ALGORITHM_ECCGOST              => 'ECC-GOST',
+		self::DNSSEC_ALGORITHM_ECDSAP256SHA256      => 'ECDSAP256SHA256',
+		self::DNSSEC_ALGORITHM_ECDSAP384SHA384      => 'ECDSAP384SHA384',
+		self::DNSSEC_ALGORITHM_ED25519              => 'ED25519',
+		self::DNSSEC_ALGORITHM_ED448                => 'ED448',
 		self::DNSSEC_ALGORITHM_INDIRECT             => 'INDIRECT',
 		self::DNSSEC_ALGORITHM_PRIVATEDNS           => 'PRIVATEDNS',
 		self::DNSSEC_ALGORITHM_PRIVATEOID           => 'PRIVATEOID'
@@ -2209,11 +2226,6 @@ class Net_DNS2_Packet
 		$this->_compressed  = array();
 
 		return true;
-	}
-
-	public static function formatIPv6($address)
-	{
-		return Net_DNS2::expandIPv6($address);
 	}
 }
 
@@ -2594,7 +2606,7 @@ class Net_DNS2_Question
 
 		$data = $packet->compress($this->qname, $packet->offset);
 
-		$data .= chr($type << 8) . chr($type) . chr($class << 8) . chr($class);
+		$data .= chr($type >> 8) . chr($type) . chr($class >> 8) . chr($class);
 		$packet->offset += 4;
 
 		return $data;
@@ -2747,9 +2759,9 @@ class Net_DNS2_Resolver extends Net_DNS2
 			//
 			foreach ($response->answer as $index => $object) {
 
-				if ( (strcasecmp($object->name, $name) == 0)
-					&& ($object->type == $type)
-					&& ($object->class == $class)
+				if ( (strcasecmp(trim($object->name, '.'), trim($packet->question[0]->qname, '.')) == 0)
+					&& ($object->type == $packet->question[0]->qtype)
+					&& ($object->class == $packet->question[0]->qclass)
 				) {
 					$found = true;
 					break;
@@ -3127,7 +3139,7 @@ abstract class Net_DNS2_RR
 		//
 		foreach ($values as $value) {
 
-			switch($value) {
+			switch(true) {
 			case is_numeric($value):
 
 				$ttl = array_shift($values);
@@ -3137,6 +3149,7 @@ abstract class Net_DNS2_RR
 
 			//
 			case ($value === 0):
+
 				$ttl = array_shift($values);
 				break;
 
@@ -3150,6 +3163,7 @@ abstract class Net_DNS2_RR
 				$type = strtoupper(array_shift($values));
 				break 2;
 				break;
+
 			default:
 
 				throw new Net_DNS2_Exception(
@@ -3626,10 +3640,10 @@ class Net_DNS2_Cache_File extends Net_DNS2_Cache
 		//
 
 		//
-		if ( (file_exists($this->cache_file) == true)
+		if ( ($this->cache_opened == false)
+			&& (file_exists($this->cache_file) == true)
 			&& (filesize($this->cache_file) > 0)
 		) {
-
 			//
 
 			//
@@ -3678,6 +3692,11 @@ class Net_DNS2_Cache_File extends Net_DNS2_Cache
 
 				//
 				$this->clean();
+
+				//
+
+				//
+				$this->cache_opened = true;
 			}
 		}
 	}
@@ -3787,6 +3806,14 @@ class Net_DNS2_Cache_Shm extends Net_DNS2_Cache
 		//
 
 		//
+		if ($this->cache_opened == true)
+		{
+			return;
+		}
+
+		//
+
+		//
 		if (!file_exists($cache_file)) {
 
 			if (file_put_contents($cache_file, '') === false) {
@@ -3853,6 +3880,11 @@ class Net_DNS2_Cache_Shm extends Net_DNS2_Cache
 
 					//
 					$this->clean();
+
+					//
+
+					//
+					$this->cache_opened = true;
 				}
 			}
 		}
@@ -4682,6 +4714,12 @@ class Net_DNS2_RR_ATMA extends Net_DNS2_RR
 
 		return $data;
 	}
+}
+
+?><?php
+
+class Net_DNS2_RR_AVC extends Net_DNS2_RR_TXT
+{
 }
 
 ?><?php
@@ -6861,7 +6899,7 @@ class Net_DNS2_RR_NSAP extends Net_DNS2_RR
 		//
 
 		//
-		if ($x['afi'] == 47) {
+		if ($x['afi'] == '47') {
 
 			$this->afi  = '0x' . $x['afi'];
 			$this->idi  = $x['idi'];
@@ -6891,7 +6929,7 @@ class Net_DNS2_RR_NSAP extends Net_DNS2_RR
 			//
 
 			//
-			if ($this->afi == 47) {
+			if ($this->afi == '47') {
 
 				//
 
@@ -6923,7 +6961,7 @@ class Net_DNS2_RR_NSAP extends Net_DNS2_RR
 
 	protected function rrGet(Net_DNS2_Packet &$packet)
 	{
-		if ($this->afi == 0x47) {
+		if ($this->afi == '0x47') {
 
 			//
 
@@ -7317,7 +7355,7 @@ class Net_DNS2_RR_OPENPGPKEY extends Net_DNS2_RR
 	{
 		if ($this->rdlength > 0) {
 
-			$this->key = base64_encode($this->rdata);
+			$this->key = base64_encode(substr($this->rdata, 0, $this->rdlength));
 
 			return true;
 		}
@@ -8119,6 +8157,12 @@ class Net_DNS2_RR_SIG extends Net_DNS2_RR
 
 ?><?php
 
+class Net_DNS2_RR_SMIMEA extends Net_DNS2_RR_TLSA
+{
+}
+
+?><?php
+
 class Net_DNS2_RR_SOA extends Net_DNS2_RR
 {
 
@@ -8296,12 +8340,15 @@ class Net_DNS2_RR_SSHFP extends Net_DNS2_RR
 
 	public $fingerprint;
 
-	const SSHFP_ALGORITHM_RES   = 0;
-	const SSHFP_ALGORITHM_RSA   = 1;
-	const SSHFP_ALGORITHM_DSS   = 2;
+	const SSHFP_ALGORITHM_RES       = 0;
+	const SSHFP_ALGORITHM_RSA       = 1;
+	const SSHFP_ALGORITHM_DSS       = 2;
+	const SSHFP_ALGORITHM_ECDSA     = 3;
+	const SSHFP_ALGORITHM_ED25519   = 4;
 
 	const SSHFP_FPTYPE_RES      = 0;
 	const SSHFP_FPTYPE_SHA1     = 1;
+	const SSHFP_FPTYPE_SHA256   = 2;
 
 	protected function rrToString()
 	{
@@ -8324,6 +8371,8 @@ class Net_DNS2_RR_SSHFP extends Net_DNS2_RR
 		//
 		if ( ($algorithm != self::SSHFP_ALGORITHM_RSA)
 			&& ($algorithm != self::SSHFP_ALGORITHM_DSS)
+			&& ($algorithm != self::SSHFP_ALGORITHM_ECDSA)
+			&& ($algorithm != self::SSHFP_ALGORITHM_ED25519)
 		) {
 			return false;
 		}
@@ -8331,7 +8380,9 @@ class Net_DNS2_RR_SSHFP extends Net_DNS2_RR
 		//
 
 		//
-		if ($fp_type != self::SSHFP_FPTYPE_SHA1) {
+		if ( ($fp_type != self::SSHFP_FPTYPE_SHA1)
+			&& ($fp_type != self::SSHFP_FPTYPE_SHA256)
+		) {
 			return false;
 		}
 
@@ -8359,6 +8410,8 @@ class Net_DNS2_RR_SSHFP extends Net_DNS2_RR
 			//
 			if ( ($this->algorithm != self::SSHFP_ALGORITHM_RSA)
 				&& ($this->algorithm != self::SSHFP_ALGORITHM_DSS)
+				&& ($this->algorithm != self::SSHFP_ALGORITHM_ECDSA)
+				&& ($this->algorithm != self::SSHFP_ALGORITHM_ED25519)
 			) {
 				return false;
 			}
@@ -8366,7 +8419,9 @@ class Net_DNS2_RR_SSHFP extends Net_DNS2_RR
 			//
 
 			//
-			if ($this->fp_type != self::SSHFP_FPTYPE_SHA1) {
+			if ( ($this->fp_type != self::SSHFP_FPTYPE_SHA1)
+				&& ($this->fp_type != self::SSHFP_FPTYPE_SHA256)
+			) {
 				return false;
 			}
 
@@ -9095,6 +9150,51 @@ class Net_DNS2_RR_TXT extends Net_DNS2_RR
 		$packet->offset += strlen($data);
 
 		return $data;
+	}
+}
+
+?><?php
+
+class Net_DNS2_RR_TYPE65534 extends Net_DNS2_RR
+{
+
+	public $private_data;
+
+	protected function rrToString()
+	{
+		return base64_encode($this->private_data);
+	}
+
+	protected function rrFromString(array $rdata)
+	{
+		$this->private_data = base64_decode(implode('', $rdata));
+
+		return true;
+	}
+
+	protected function rrSet(Net_DNS2_Packet &$packet)
+	{
+		if ($this->rdlength > 0) {
+			$this->private_data  = $this->rdata;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	protected function rrGet(Net_DNS2_Packet &$packet)
+	{
+		if (strlen($this->private_data) > 0) {
+
+			$data = $this->private_data;
+
+			$packet->offset += strlen($data);
+
+			return $data;
+		}
+
+		return null;
 	}
 }
 

@@ -1,8 +1,8 @@
 <?php
 	// CubicleSoft PostgreSQL database interface.
-	// (C) 2015 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
-	if (!class_exists("CSDB"))  exit();
+	if (!class_exists("CSDB", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/db.php";
 
 	class CSDB_pgsql_lite extends CSDB
 	{
