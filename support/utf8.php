@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP UTF8 (Unicode) functions.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2018 CubicleSoft.  All Rights Reserved.
 
 	class UTF8
 	{
@@ -13,78 +13,82 @@
 			$y = strlen($data);
 			while ($x < $y)
 			{
-				$tempchr = ord($data[$x]);
-				if ($y - $x > 1)  $tempchr2 = ord($data[$x + 1]);
-				else  $tempchr2 = 0x00;
-				if ($y - $x > 2)  $tempchr3 = ord($data[$x + 2]);
-				else  $tempchr3 = 0x00;
-				if ($y - $x > 3)  $tempchr4 = ord($data[$x + 3]);
-				else  $tempchr4 = 0x00;
-				if ($tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D || ($tempchr >= 0x20 && $tempchr <= 0x7E))
+				$tempchr = ord($data{$x});
+				if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)
 				{
 					// ASCII minus control and special characters.
 					$result .= chr($tempchr);
 					$x++;
 				}
-				else if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))
+				else
 				{
-					// Non-overlong (2 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$x += 2;
+					if ($y - $x > 1)  $tempchr2 = ord($data{$x + 1});
+					else  $tempchr2 = 0x00;
+					if ($y - $x > 2)  $tempchr3 = ord($data{$x + 2});
+					else  $tempchr3 = 0x00;
+					if ($y - $x > 3)  $tempchr4 = ord($data{$x + 3});
+					else  $tempchr4 = 0x00;
+
+					if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))
+					{
+						// Non-overlong (2 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$x += 2;
+					}
+					else if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
+					{
+						// Non-overlong (3 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$x += 3;
+					}
+					else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
+					{
+						// Normal/straight (3 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$x += 3;
+					}
+					else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
+					{
+						// Non-surrogates (3 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$x += 3;
+					}
+					else if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
+					{
+						// Planes 1-3 (4 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$result .= chr($tempchr4);
+						$x += 4;
+					}
+					else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
+					{
+						// Planes 4-15 (4 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$result .= chr($tempchr4);
+						$x += 4;
+					}
+					else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
+					{
+						// Plane 16 (4 bytes).
+						$result .= chr($tempchr);
+						$result .= chr($tempchr2);
+						$result .= chr($tempchr3);
+						$result .= chr($tempchr4);
+						$x += 4;
+					}
+					else  $x++;
 				}
-				else if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
-				{
-					// Non-overlong (3 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$x += 3;
-				}
-				else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
-				{
-					// Normal/straight (3 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$x += 3;
-				}
-				else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))
-				{
-					// Non-surrogates (3 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$x += 3;
-				}
-				else if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
-				{
-					// Planes 1-3 (4 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$result .= chr($tempchr4);
-					$x += 4;
-				}
-				else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
-				{
-					// Planes 4-15 (4 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$result .= chr($tempchr4);
-					$x += 4;
-				}
-				else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))
-				{
-					// Plane 16 (4 bytes).
-					$result .= chr($tempchr);
-					$result .= chr($tempchr2);
-					$result .= chr($tempchr3);
-					$result .= chr($tempchr4);
-					$x += 4;
-				}
-				else  $x++;
 			}
 
 			return $result;
@@ -96,22 +100,40 @@
 			$y = strlen($data);
 			while ($x < $y)
 			{
-				$tempchr = ord($data[$x]);
-				if ($y - $x > 1)  $tempchr2 = ord($data[$x + 1]);
-				else  $tempchr2 = 0x00;
-				if ($y - $x > 2)  $tempchr3 = ord($data[$x + 2]);
-				else  $tempchr3 = 0x00;
-				if ($y - $x > 3)  $tempchr4 = ord($data[$x + 3]);
-				else  $tempchr4 = 0x00;
-				if ($tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D || ($tempchr >= 0x20 && $tempchr <= 0x7E))  $x++;
-				else if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $x += 2;
-				else if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $x += 3;
-				else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $x += 3;
-				else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $x += 3;
-				else if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $x += 4;
-				else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $x += 4;
-				else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $x += 4;
-				else  return false;
+				$tempchr = ord($data{$x});
+				if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)  $x++;
+				else if ($tempchr < 0xC2)  return false;
+				else
+				{
+					$left = $y - $x;
+					if ($left > 1)  $tempchr2 = ord($data{$x + 1});
+					else  return false;
+
+					if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $x += 2;
+					else
+					{
+						if ($left > 2)  $tempchr3 = ord($data{$x + 2});
+						else  return false;
+
+						if ($tempchr3 < 0x80 || $tempchr3 > 0xBF)  return false;
+
+						if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF))  $x += 3;
+						else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $x += 3;
+						else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F))  $x += 3;
+						else
+						{
+							if ($left > 3)  $tempchr4 = ord($data{$x + 3});
+							else  return false;
+
+							if ($tempchr4 < 0x80 || $tempchr4 > 0xBF)  return false;
+
+							if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF))  $x += 4;
+							else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $x += 4;
+							else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F))  $x += 4;
+							else  return false;
+						}
+					}
+				}
 			}
 
 			return true;
@@ -128,24 +150,56 @@
 			$y = $datalen;
 			if ($x >= $y)  return false;
 
-			$tempchr = ord($data[$x]);
-			if ($y - $x > 1)  $tempchr2 = ord($data[$x + 1]);
-			else  $tempchr2 = 0x00;
-			if ($y - $x > 2)  $tempchr3 = ord($data[$x + 2]);
-			else  $tempchr3 = 0x00;
-			if ($y - $x > 3)  $tempchr4 = ord($data[$x + 3]);
-			else  $tempchr4 = 0x00;
-			if ($tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D || ($tempchr >= 0x20 && $tempchr <= 0x7E))  $size = 1;
-			else if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $size = 2;
-			else if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $size = 3;
-			else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $size = 3;
-			else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF))  $size = 3;
-			else if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $size = 4;
-			else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $size = 4;
-			else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F) && ($tempchr3 >= 0x80 && $tempchr3 <= 0xBF) && ($tempchr4 >= 0x80 && $tempchr4 <= 0xBF))  $size = 4;
-			else  return false;
+			$tempchr = ord($data{$x});
+			if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)  $size = 1;
+			else if ($tempchr < 0xC2)  return false;
+			else
+			{
+				$left = $y - $x;
+				if ($left > 1)  $tempchr2 = ord($data{$x + 1});
+				else  return false;
+
+				if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $size = 2;
+				else
+				{
+					if ($left > 2)  $tempchr3 = ord($data{$x + 2});
+					else  return false;
+
+					if ($tempchr3 < 0x80 || $tempchr3 > 0xBF)  return false;
+
+					if ($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF))  $size = 3;
+					else if ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $size = 3;
+					else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F))  $size = 3;
+					else
+					{
+						if ($left > 3)  $tempchr4 = ord($data{$x + 3});
+						else  return false;
+
+						if ($tempchr4 < 0x80 || $tempchr4 > 0xBF)  return false;
+
+						if ($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF))  $size = 4;
+						else if (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $size = 4;
+						else if ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F))  $size = 4;
+						else  return false;
+					}
+				}
+			}
 
 			return true;
+		}
+
+		// Converts a numeric value to a UTF8 character (code point).
+		public static function MakeChr($num)
+		{
+			if ($num < 0 || ($num >= 0xD800 && $num <= 0xDFFF) || ($num >= 0xFDD0 && $num <= 0xFDEF) || ($num & 0xFFFE) == 0xFFFE)  return "";
+
+			if ($num <= 0x7F)  $result = chr($num);
+			else if ($num <= 0x7FF)  $result = chr(0xC0 | ($num >> 6)) . chr(0x80 | ($num & 0x3F));
+			else if ($num <= 0xFFFF)  $result = chr(0xE0 | ($num >> 12)) . chr(0x80 | (($num >> 6) & 0x3F)) . chr(0x80 | ($num & 0x3F));
+			else if ($num <= 0x10FFFF)  $result = chr(0xF0 | ($num >> 18)) . chr(0x80 | (($num >> 12) & 0x3F)) . chr(0x80 | (($num  >> 6) & 0x3F)) . chr(0x80 | ($num & 0x3F));
+			else  $result = "";
+
+			return $result;
 		}
 
 		// Determines if a UTF8 string can also be viewed as ASCII.
@@ -192,10 +246,10 @@
 		// Converts UTF8 characters in a string to HTML entities.
 		public static function ConvertToHTML($data)
 		{
-			return preg_replace_callback('/([\xC0-\xF7]{1,1}[\x80-\xBF]+)/', 'UTF8::ConvertToHTML__Callback', $data);
+			return preg_replace_callback('/([\xC0-\xF7]{1,1}[\x80-\xBF]+)/', __CLASS__ . '::ConvertToHTML__Callback', $data);
 		}
 
-		private static function ConvertToHTML__Callback($data)
+		protected static function ConvertToHTML__Callback($data)
 		{
 			$data = $data[1];
 			$num = 0;

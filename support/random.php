@@ -1,6 +1,6 @@
 <?php
 	// Cryptographically Secure Pseudo-Random String Generator (CSPRSG) and CSPRNG.
-	// (C) 2017 CubicleSoft.  All Rights Reserved.
+	// (C) 2018 CubicleSoft.  All Rights Reserved.
 
 	class CSPRNG
 	{
@@ -152,6 +152,232 @@
 				if ($data === false)  return false;
 
 				$result .= self::$alphanum{$data};
+			}
+
+			return $result;
+		}
+
+		public function GenerateWord(&$freqmap, $len, $separator = "-")
+		{
+			$result = "";
+			$queue = array();
+			$threshold = $freqmap["threshold"];
+			$state = "start";
+			while ($len)
+			{
+//echo $state . " - " . $len . ":  " . $result . "\n";
+				switch ($state)
+				{
+					case "start":
+					{
+						// The start of the word (or restart).
+						$path = &$freqmap["start"];
+						while (count($queue) < $threshold && $len)
+						{
+							if ($len > 1 || !$path["*"])
+							{
+								// Some part of the word.
+								$found = false;
+								if ($path[""])
+								{
+									$pos = $this->GetInt(0, $path[""] - 1);
+
+									foreach ($path as $chr => &$info)
+									{
+										if ($chr === "")  continue;
+
+										if ($info["+"] > $pos)
+										{
+											$result .= $chr;
+											$queue[] = $chr;
+											$path = &$path[$chr];
+											$len--;
+
+											$found = true;
+
+											break;
+										}
+
+										$pos -= $info["+"];
+									}
+								}
+
+								if (!$found)
+								{
+									$state = (count($queue) ? "recovery" : "restart");
+
+									break;
+								}
+							}
+							else
+							{
+								// Last letter of the word.
+								$found = false;
+								if ($path["*"])
+								{
+									$pos = $this->GetInt(0, $path["*"] - 1);
+
+									foreach ($path as $chr => &$info)
+									{
+										if ($chr === "")  continue;
+
+										if ($info["-"] > $pos)
+										{
+											$result .= $chr;
+											$queue[] = $chr;
+											$path = &$path[$chr];
+											$len--;
+
+											$found = true;
+
+											break;
+										}
+
+										$pos -= $info["-"];
+									}
+								}
+
+								if (!$found)
+								{
+									$state = (count($queue) ? "end" : "restart");
+
+									break;
+								}
+							}
+						}
+
+						if (count($queue) >= $threshold)  $state = ($len >= $threshold ? "middle" : "end");
+
+						break;
+					}
+					case "middle":
+					{
+						// The middle of the word.
+						$str = implode("", $queue);
+
+						if (!isset($freqmap["middle"][$str]))  $state = "recovery";
+						else
+						{
+							$found = false;
+
+							if ($freqmap["middle"][$str][""])
+							{
+								$pos = $this->GetInt(0, $freqmap["middle"][$str][""] - 1);
+
+								foreach ($freqmap["middle"][$str] as $chr => $num)
+								{
+									if ($chr === "")  continue;
+
+									if ($num > $pos)
+									{
+										$result .= $chr;
+										$queue[] = $chr;
+										array_shift($queue);
+										$len--;
+
+										if ($len < $threshold)  $state = "end";
+
+										$found = true;
+
+										break;
+									}
+
+									$pos -= $num;
+								}
+							}
+
+							if (!$found)  $state = "recovery";
+						}
+
+						break;
+					}
+					case "end":
+					{
+						if (!isset($freqmap["end"][$len]) || !count($queue) || !isset($freqmap["end"][$len][$queue[count($queue) - 1]]))  $state = "restart";
+						else
+						{
+							$path = &$freqmap["end"][$len][$queue[count($queue) - 1]];
+
+							$found = false;
+
+							if ($path[""])
+							{
+								$pos = $this->GetInt(0, $path[""] - 1);
+
+								foreach ($path as $str => $num)
+								{
+									if ($str === "")  continue;
+
+									if ($num > $pos)
+									{
+										$result .= $str;
+										$len = 0;
+
+										$found = true;
+
+										break;
+									}
+
+									$pos -= $num;
+								}
+							}
+
+							if (!$found)  $state = "restart";
+						}
+
+						break;
+					}
+					case "recovery":
+					{
+						if (!count($queue) || !isset($freqmap["recovery"][$queue[count($queue) - 1]]))  $state = "restart";
+						else
+						{
+							$path = &$freqmap["recovery"][$queue[count($queue) - 1]];
+
+							$found = false;
+
+							if ($path[""])
+							{
+								$pos = $this->GetInt(0, $path[""] - 1);
+
+								foreach ($path as $chr => $num)
+								{
+									if ($chr === "")  continue;
+
+									if ($num > $pos)
+									{
+										$result .= $chr;
+										$queue[] = $chr;
+										array_shift($queue);
+										$len--;
+
+										$state = ($len >= $threshold ? "middle" : "end");
+
+										$found = true;
+
+										break;
+									}
+
+									$pos -= $num;
+								}
+							}
+
+							if (!$found)  $state = "restart";
+						}
+
+						break;
+					}
+					case "restart":
+					{
+						$result .= $separator;
+						$queue = array();
+						$len -= strlen($separator);
+
+						$state = "start";
+
+						break;
+					}
+				}
 			}
 
 			return $result;
