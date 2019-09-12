@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP MIME Parser class.
-	// (C) 2014 CubicleSoft.  All Rights Reserved.
+	// (C) 2016 CubicleSoft.  All Rights Reserved.
 
 	// Load dependencies.
 	if (!class_exists("UTF8", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf8.php";
