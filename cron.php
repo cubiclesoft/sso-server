@@ -39,7 +39,7 @@
 			"help" => array("arg" => false)
 		)
 	);
-	$sso_args = ParseCommandLine($options);
+	$sso_args = CLI::ParseCommandLine($options);
 
 	if (count($sso_args["params"]) != 0 || isset($sso_args["opts"]["help"]))
 	{
