@@ -45,7 +45,7 @@
 				$url = @base64_decode($_COOKIE["sso_server_lastapp"]);
 				if ($url !== false)
 				{
-					echo "<div class=\"sso_main_info\"><a href=\"" . htmlspecialchars($url) . "\">" . htmlspecialchars(BB_Translate("Return to the application")) . "</a></div>";
+					echo "<div class=\"sso_main_wrap\"><div class=\"sso_main_info\"><a href=\"" . htmlspecialchars($url) . "\">" . htmlspecialchars(BB_Translate("Return to the application")) . "</a></div></div>";
 				}
 			}
 
@@ -337,12 +337,18 @@ catch (ex)
 		}
 		else if (isset($_REQUEST["sso_action"]) && $_REQUEST["sso_action"] == "sso_redirect")
 		{
-			if (!isset($_COOKIE["sso_server_er"]) || !isset($_COOKIE["sso_server_ern"]) || $_COOKIE["sso_server_ern"] !== md5(SSO_FrontendField("external_redirect") . ":" . base64_decode($_COOKIE["sso_server_er"])))  SSO_DisplayError("Valid redirect expected.  Most likely cause:  Invalid cookies.");
+			if (!isset($_COOKIE["sso_server_er"]) || !isset($_COOKIE["sso_server_ern"]) || $_COOKIE["sso_server_ern"] !== md5(SSO_FrontendField("external_redirect") . ":" . base64_decode($_COOKIE["sso_server_er"])))
+			{
+				SetCookieFixDomain("sso_server_er", "", 1, "", "", SSO_IsSSLRequest(), true);
+				SetCookieFixDomain("sso_server_ern", "", 1, "", "", SSO_IsSSLRequest(), true);
+
+				SSO_DisplayError("Valid redirect expected.  Most likely cause:  Invalid cookies.  Clear browser cookies and try again.");
+			}
 
 			header("Location: " . base64_decode($_COOKIE["sso_server_er"]));
 
-			SetCookieFixDomain("sso_server_er", "", 0, "", "", SSO_IsSSLRequest(), true);
-			SetCookieFixDomain("sso_server_ern", "", 0, "", "", SSO_IsSSLRequest(), true);
+			SetCookieFixDomain("sso_server_er", "", 1, "", "", SSO_IsSSLRequest(), true);
+			SetCookieFixDomain("sso_server_ern", "", 1, "", "", SSO_IsSSLRequest(), true);
 
 			if (isset($_REQUEST["sso_final"]) && $_REQUEST["sso_final"] > 0)
 			{
