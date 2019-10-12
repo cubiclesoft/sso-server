@@ -1482,6 +1482,7 @@ div.formfields div.formitem table div.search_field_val b {
 				$sso_settings[""]["hide_index"] = (int)$_REQUEST["hide_index"];
 				$sso_settings[""]["first_activated_map"] = (SSO_IsField($_REQUEST["first_activated_map"]) ? $_REQUEST["first_activated_map"] : "");
 				$sso_settings[""]["created_map"] = (SSO_IsField($_REQUEST["created_map"]) ? $_REQUEST["created_map"] : "");
+				$sso_settings[""]["dns_servers"] = $_REQUEST["dns_servers"];
 
 				if ((int)$_REQUEST["reset_namespace"])  SSO_GenerateNamespaceKeys();
 
@@ -1530,6 +1531,42 @@ div.formfields div.formitem table div.search_field_val b {
 
 			if ($desc !== false)  $searchrows[] = array("<input type=\"hidden\" name=\"search_order[]\" value=\"" . htmlspecialchars($key) . "\" /><input type=\"hidden\" name=\"search_display[]\" value=\"" . count($searchrows) . "\" /><input type=\"checkbox\" id=\"search_display_" . count($searchrows) . "\" name=\"search_display_" . count($searchrows) . "\" value=\"yes\"" . ($display ? " checked" : "") . " /> <label for=\"search_display_" . count($searchrows) . "\">" . htmlspecialchars($desc) . "</label>");
 		}
+
+		// Attempt to auto-discover the local machine's nameserver(s).
+		$dnsservers = array();
+		$os = php_uname("s");
+		$windows = (strtoupper(substr($os, 0, 3)) == "WIN");
+
+		if ($windows)
+		{
+			@exec("nslookup < NUL 2>&1", $lines);
+
+			$ipaddr = $lines[1];
+			$pos = strpos($ipaddr, ":");
+			if ($pos !== false)
+			{
+				$ipaddr = trim(substr($ipaddr, $pos + 1));
+
+				$dnsservers[] = $ipaddr;
+			}
+		}
+		else if (file_exists("/etc/resolv.conf"))
+		{
+			$lines = @explode("\n", file_get_contents("/etc/resolv.conf"));
+
+			foreach ($lines as $line)
+			{
+				$line = trim($line);
+				if (substr($line, 0, 10) === "nameserver")
+				{
+					$ipaddr = trim(substr($line, 10));
+
+					$dnsservers[] = $ipaddr;
+				}
+			}
+		}
+
+		if (!count($dnsservers))  $dnsservers[] = BB_Translate("Failed to find any DNS servers.");
 
 		$contentopts = array(
 			"desc" => "Configure the SSO Server.  These options affect all providers.",
@@ -1607,6 +1644,14 @@ div.formfields div.formitem table div.search_field_val b {
 					"options" => $sso_select_fields,
 					"select" => BB_GetValue("created_map", (string)(isset($sso_settings[""]["created_map"]) ? $sso_settings[""]["created_map"] : "")),
 					"desc" => "The field in the SSO system to map the account created date/time to.  This value is supplied by each Provider and may be significantly earlier than 'first_activated'."
+				),
+				array(
+					"title" => "DNS Servers",
+					"type" => "textarea",
+					"height" => "200px",
+					"name" => "dns_servers",
+					"value" => BB_GetValue("dns_servers", (isset($sso_settings[""]["dns_servers"]) ? $sso_settings[""]["dns_servers"] : "8.8.8.8\n8.8.4.4")),
+					"desc" => BB_Translate("The IP addresses of the DNS servers to use for resolving email address domains.  One per line.  Default is Google DNS (8.8.8.8 and 8.8.4.4).  Auto-discovered:  %s", implode(", ", $dnsservers))
 				),
 			),
 			"submit" => "Save",

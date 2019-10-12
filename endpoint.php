@@ -190,7 +190,7 @@
 			if ($sso_apikey_info["type"] != "normal")  SSO_EndpointError("Invalid API key type.");
 
 			if (!isset($sso_data["ns"]) || $sso_data["ns"] == "")  SSO_EndpointError("Namespace information not sent or not specified.");
-			if (!isset($sso_settings[""]["expose_namespaces"]) || $sso_settings[""]["expose_namespaces"] < 1 || !isset($sso_settings[""]["namespacekey4"]))  SSO_EndpointError("Namespace exposure support is disabled at the server level.");
+			if ($sso_settings[""]["expose_namespaces"] < 1 || !isset($sso_settings[""]["namespacekey4"]))  SSO_EndpointError("Namespace exposure support is disabled at the server level.");
 
 			$namespaces = SSO_LoadNamespaces(false, $sso_data["ns"]);
 

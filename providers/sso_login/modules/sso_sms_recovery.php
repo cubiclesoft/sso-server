@@ -38,7 +38,7 @@
 
 			if ($_REQUEST["sso_sms_recovery_from"] != "")
 			{
-				$email = SMTP::MakeValidEmailAddress($_REQUEST["sso_sms_recovery_from"]);
+				$email = SSO_MakeValidEmailAddress($_REQUEST["sso_sms_recovery_from"]);
 				if (!$email["success"])  BB_SetPageMessage("error", BB_Translate("The e-mail address '%s' is invalid.  %s", $_REQUEST["sso_sms_recovery_from"], $email["error"]));
 				else
 				{
@@ -220,12 +220,7 @@
 										$item = $data->sms_carriers->$country->$carrier;
 										$emailaddr = str_replace("{number}", $field, $item[1]);
 
-										if (!class_exists("SMTP"))
-										{
-											define("CS_TRANSLATE_FUNC", "BB_Translate");
-											require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
-										}
-										$email = SMTP::MakeValidEmailAddress($emailaddr);
+										$email = SSO_MakeValidEmailAddress($emailaddr);
 										if (!$email["success"])  $result["errors"][] = BB_Translate("Invalid e-mail address.  %s", $email["error"]);
 										else
 										{

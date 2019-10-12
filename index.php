@@ -223,7 +223,6 @@ jQuery(function() {
 	}
 	if (!count($sso_providers))
 	{
-		if (!isset($sso_settings[""]["no_providers_msg"]))  $sso_settings[""]["no_providers_msg"] = "";
 		$message = $sso_settings[""]["no_providers_msg"];
 
 		$details = array();

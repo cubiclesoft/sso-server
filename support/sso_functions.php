@@ -271,6 +271,10 @@
 
 		date_default_timezone_set($sso_settings[""]["timezone"]);
 
+		if (!isset($sso_settings[""]["no_providers_msg"]))  $sso_settings[""]["no_providers_msg"] = "";
+		if (!isset($sso_settings[""]["expose_namespaces"]))  $sso_settings[""]["expose_namespaces"] = 0;
+		if (!isset($sso_settings[""]["dns_servers"]))  $sso_settings[""]["dns_servers"] = "8.8.8.8\n8.8.4.4";
+
 		$geoip_opts = SSO_GetGeoIPOpts();
 		foreach ($geoip_opts as $opt => $val)
 		{
@@ -831,11 +835,42 @@
 		return true;
 	}
 
+	function SSO_GetDNSServers()
+	{
+		global $sso_settings;
+
+		$lines = explode("\n", $sso_settings[""]["dns_servers"]);
+		$result = array();
+
+		foreach ($lines as $line)
+		{
+			$line = trim($line);
+			if ($line !== "")  $result[] = $line;
+		}
+
+		return $result;
+	}
+
+	function SSO_MakeValidEmailAddress($addr)
+	{
+		if (!class_exists("SMTP", false))
+		{
+			if (!defined("CS_TRANSLATE_FUNC"))  define("CS_TRANSLATE_FUNC", "BB_Translate");
+			require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
+		}
+
+		$options = array(
+			"nameservers" => SSO_GetDNSServers()
+		);
+
+		return SMTP::MakeValidEmailAddress($addr, $options);
+	}
+
 	function SSO_SendEmail($fromaddr, $toaddr, $subject, $htmlmsg, $textmsg)
 	{
-		if (!class_exists("SMTP"))
+		if (!class_exists("SMTP", false))
 		{
-			define("CS_TRANSLATE_FUNC", "BB_Translate");
+			if (!defined("CS_TRANSLATE_FUNC"))  define("CS_TRANSLATE_FUNC", "BB_Translate");
 			require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
 		}
 
@@ -848,7 +883,8 @@
 			"port" => SSO_SMTP_PORT,
 			"secure" => (SSO_SMTP_PORT == 465),
 			"username" => SSO_SMTPPOP3_USER,
-			"password" => SSO_SMTPPOP3_PASS
+			"password" => SSO_SMTPPOP3_PASS,
+			"nameservers" => SSO_GetDNSServers()
 		);
 
 		$result = SMTP::SendEmail($fromaddr, $toaddr, $subject, $smtpoptions);

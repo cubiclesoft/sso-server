@@ -460,6 +460,30 @@ Returns:  A boolean of true is the session information was successfully saved, f
 
 This global function is intended to be called after modifying $sso_session_info.
 
+SSO_GetDNSServers()
+-------------------
+
+Access:  global
+
+Parameters:  None.
+
+Returns:  An array of DNS servers.
+
+This global function returns the configured DNS server settings as an array.
+
+SSO_MakeValidEmailAddress($addr)
+--------------------------------
+
+Access:  global
+
+Parameters:
+
+* $addr - A string containing an e-mail address.
+
+Returns:  A standard array of information.
+
+This global function calls `SMTP::MakeValidEmailAddress()` from the Ultimate E-mail Toolkit using the DNS servers as returned by `SSO_GetDNSServers()`.
+
 SSO_SendEmail($fromaddr, $toaddr, $subject, $htmlmsg, $textmsg)
 ---------------------------------------------------------------
 

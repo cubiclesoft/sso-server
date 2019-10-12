@@ -325,10 +325,7 @@
 					// Check e-mail domain blacklist.
 					if (isset($profile["email"]))
 					{
-						define("CS_TRANSLATE_FUNC", "BB_Translate");
-						require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
-
-						$email = SMTP::MakeValidEmailAddress($profile["email"]);
+						$email = SSO_MakeValidEmailAddress($profile["email"]);
 						if (!$email["success"])  $message = BB_Translate("Invalid e-mail address.  %s", $email["error"]);
 						else
 						{

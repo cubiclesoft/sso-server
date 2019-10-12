@@ -304,12 +304,15 @@
 						if ($_REQUEST["email_verify_msg"] != "" && stripos($_REQUEST["email_verify_msg"], "@VERIFY@") === false)  BB_SetPageMessage("error", "The 'Verify E-mail Message' field does not contain '@VERIFY@'.");
 						else if ($_REQUEST["email_recover_msg"] != "" && stripos($_REQUEST["email_recover_msg"], "@VERIFY@") === false)  BB_SetPageMessage("error", "The 'Recovery E-mail Message' field does not contain '@VERIFY@'.");
 
-						define("CS_TRANSLATE_FUNC", "BB_Translate");
-						require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
+						if (!class_exists("SMTP", false))
+						{
+							if (!defined("CS_TRANSLATE_FUNC"))  define("CS_TRANSLATE_FUNC", "BB_Translate");
+							require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
+						}
 
 						if ($_REQUEST["email_verify_from"] != "")
 						{
-							$email = SMTP::MakeValidEmailAddress($_REQUEST["email_verify_from"]);
+							$email = SSO_MakeValidEmailAddress($_REQUEST["email_verify_from"]);
 							if (!$email["success"])  BB_SetPageMessage("error", BB_Translate("The e-mail address '%s' is invalid.  %s", $_REQUEST["email_verify_from"], $email["error"]));
 							else
 							{
@@ -321,7 +324,7 @@
 
 						if ($_REQUEST["email_recover_from"] != "")
 						{
-							$email = SMTP::MakeValidEmailAddress($_REQUEST["email_recover_from"]);
+							$email = SSO_MakeValidEmailAddress($_REQUEST["email_recover_from"]);
 							if (!$email["success"])  BB_SetPageMessage("error", BB_Translate("The e-mail address '%s' is invalid.  %s", $_REQUEST["email_recover_from"], $email["error"]));
 							else
 							{
@@ -1056,7 +1059,7 @@
 						$verified = true;
 						if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email")
 						{
-							$result = SMTP::MakeValidEmailAddress($email);
+							$result = SSO_MakeValidEmailAddress($email);
 							$email = $result["email"];
 						}
 
@@ -1549,9 +1552,8 @@ SSO_Vars = {
 				if ($field === false || trim($field) == "")  $result["errors"][] = BB_Translate("E-mail Address field is empty.");
 				else
 				{
-					define("CS_TRANSLATE_FUNC", "BB_Translate");
-					require_once SSO_ROOT_PATH . "/" . SSO_SUPPORT_PATH . "/smtp.php";
-					$email = SMTP::MakeValidEmailAddress($field);
+					$email = SSO_MakeValidEmailAddress($field);
+
 					if (!$email["success"])  $result["errors"][] = BB_Translate("Invalid e-mail address.  %s", $email["error"]);
 					else
 					{
@@ -1858,7 +1860,7 @@ SSO_Vars = {
 						$verified = true;
 						if ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email")
 						{
-							$result = SMTP::MakeValidEmailAddress($email);
+							$result = SSO_MakeValidEmailAddress($email);
 							$email = $result["email"];
 							$verified = ($sso_settings["sso_login"]["email_verify_subject"] == "" || $sso_settings["sso_login"]["email_verify_msg"] == "");
 						}
@@ -2139,7 +2141,7 @@ SSO_Vars = {
 							if ($sso_settings["sso_login"]["change_email"] && ($sso_settings["sso_login"]["install_type"] == "email_username" || $sso_settings["sso_login"]["install_type"] == "email"))
 							{
 								$email = SSO_FrontendFieldValue("update_email", "");
-								$result = SMTP::MakeValidEmailAddress($email);
+								$result = SSO_MakeValidEmailAddress($email);
 								$email = $result["email"];
 								$verified = ($sso_settings["sso_login"]["email_verify_subject"] == "" || $sso_settings["sso_login"]["email_verify_msg"] == "" || $userrow->email == $email);
 							}
