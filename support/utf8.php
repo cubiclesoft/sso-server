@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP UTF8 (Unicode) functions.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2019 CubicleSoft.  All Rights Reserved.
 
 	class UTF8
 	{
@@ -189,7 +189,7 @@
 		}
 
 		// Converts a numeric value to a UTF8 character (code point).
-		public static function MakeChr($num)
+		public static function chr($num)
 		{
 			if ($num < 0 || ($num >= 0xD800 && $num <= 0xDFFF) || ($num >= 0xFDD0 && $num <= 0xFDEF) || ($num & 0xFFFE) == 0xFFFE)  return "";
 
@@ -200,6 +200,59 @@
 			else  $result = "";
 
 			return $result;
+		}
+
+		public static function MakeChr($num)
+		{
+			return self::chr($num);
+		}
+
+		// Converts a UTF8 code point to a numeric value.
+		public static function ord($str)
+		{
+			$tempchr = ord($str[0]);
+			if ($tempchr <= 0x7F)  return $tempchr;
+			else if ($tempchr < 0xC2)  return false;
+			else
+			{
+				$y = strlen($str);
+				if ($y > 1)  $tempchr2 = ord($str[1]);
+				else  return false;
+
+				if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  return (($tempchr & 0x1F) << 6) | ($tempchr2 & 0x3F);
+				else
+				{
+					if ($y > 2)  $tempchr3 = ord($str[2]);
+					else  return false;
+
+					if ($tempchr3 < 0x80 || $tempchr3 > 0xBF)  return false;
+
+					if (($tempchr == 0xE0 && ($tempchr2 >= 0xA0 && $tempchr2 <= 0xBF)) || ((($tempchr >= 0xE1 && $tempchr <= 0xEC) || $tempchr == 0xEE || $tempchr == 0xEF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF)) || ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F)))
+					{
+						return (($tempchr & 0x0F) << 12) | (($tempchr2 & 0x3F) << 6) | ($tempchr3 & 0x3F);
+					}
+					else
+					{
+						if ($y > 3)  $tempchr4 = ord($str[3]);
+						else  return false;
+
+						if ($tempchr4 < 0x80 || $tempchr4 > 0xBF)  return false;
+
+						if (($tempchr == 0xF0 && ($tempchr2 >= 0x90 && $tempchr2 <= 0xBF)) || (($tempchr >= 0xF1 && $tempchr <= 0xF3) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF)) || ($tempchr == 0xF4 && ($tempchr2 >= 0x80 && $tempchr2 <= 0x8F)))
+						{
+							return (($tempchr & 0x07) << 18) | (($tempchr2 & 0x3F) << 12) | (($tempchr3 & 0x3F) << 6) | ($tempchr4 & 0x3F);
+						}
+					}
+				}
+			}
+
+			return false;
+		}
+
+		// Checks a numeric value to see if it is a combining code point.
+		public static function IsCombiningCodePoint($val)
+		{
+			return (($val >= 0x0300 && $val <= 0x036F) || ($val >= 0x1DC0 && $val <= 0x1DFF) || ($val >= 0x20D0 && $val <= 0x20FF) || ($val >= 0xFE20 && $val <= 0xFE2F));
 		}
 
 		// Determines if a UTF8 string can also be viewed as ASCII.
