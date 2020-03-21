@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP SMTP e-mail functions.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	// Load dependencies.
 	if (!class_exists("UTF8", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf8.php";
@@ -1474,7 +1474,7 @@
 					{
 						if (trim($line) !== "")
 						{
-							if ($line{0} !== "\xFF" && (($tagname === "/ul" && $line{0} !== "-") || ($tagname === "/ol" && !(int)$line{0})))  $prefix2 = "\xFF\xFF";
+							if ($line[0] !== "\xFF" && (($tagname === "/ul" && $line[0] !== "-") || ($tagname === "/ol" && !(int)$line[0])))  $prefix2 = "\xFF\xFF";
 							else  $prefix2 = "";
 
 							$lines[$num] = $prefix . $prefix2 . trim($line);

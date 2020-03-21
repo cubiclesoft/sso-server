@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP UTF8 (Unicode) functions.
-	// (C) 2019 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	class UTF8
 	{
@@ -13,7 +13,7 @@
 			$y = strlen($data);
 			while ($x < $y)
 			{
-				$tempchr = ord($data{$x});
+				$tempchr = ord($data[$x]);
 				if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)
 				{
 					// ASCII minus control and special characters.
@@ -22,11 +22,11 @@
 				}
 				else
 				{
-					if ($y - $x > 1)  $tempchr2 = ord($data{$x + 1});
+					if ($y - $x > 1)  $tempchr2 = ord($data[$x + 1]);
 					else  $tempchr2 = 0x00;
-					if ($y - $x > 2)  $tempchr3 = ord($data{$x + 2});
+					if ($y - $x > 2)  $tempchr3 = ord($data[$x + 2]);
 					else  $tempchr3 = 0x00;
-					if ($y - $x > 3)  $tempchr4 = ord($data{$x + 3});
+					if ($y - $x > 3)  $tempchr4 = ord($data[$x + 3]);
 					else  $tempchr4 = 0x00;
 
 					if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))
@@ -100,19 +100,19 @@
 			$y = strlen($data);
 			while ($x < $y)
 			{
-				$tempchr = ord($data{$x});
+				$tempchr = ord($data[$x]);
 				if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)  $x++;
 				else if ($tempchr < 0xC2)  return false;
 				else
 				{
 					$left = $y - $x;
-					if ($left > 1)  $tempchr2 = ord($data{$x + 1});
+					if ($left > 1)  $tempchr2 = ord($data[$x + 1]);
 					else  return false;
 
 					if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $x += 2;
 					else
 					{
-						if ($left > 2)  $tempchr3 = ord($data{$x + 2});
+						if ($left > 2)  $tempchr3 = ord($data[$x + 2]);
 						else  return false;
 
 						if ($tempchr3 < 0x80 || $tempchr3 > 0xBF)  return false;
@@ -122,7 +122,7 @@
 						else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F))  $x += 3;
 						else
 						{
-							if ($left > 3)  $tempchr4 = ord($data{$x + 3});
+							if ($left > 3)  $tempchr4 = ord($data[$x + 3]);
 							else  return false;
 
 							if ($tempchr4 < 0x80 || $tempchr4 > 0xBF)  return false;
@@ -150,19 +150,19 @@
 			$y = $datalen;
 			if ($x >= $y)  return false;
 
-			$tempchr = ord($data{$x});
+			$tempchr = ord($data[$x]);
 			if (($tempchr >= 0x20 && $tempchr <= 0x7E) || $tempchr == 0x09 || $tempchr == 0x0A || $tempchr == 0x0D)  $size = 1;
 			else if ($tempchr < 0xC2)  return false;
 			else
 			{
 				$left = $y - $x;
-				if ($left > 1)  $tempchr2 = ord($data{$x + 1});
+				if ($left > 1)  $tempchr2 = ord($data[$x + 1]);
 				else  return false;
 
 				if (($tempchr >= 0xC2 && $tempchr <= 0xDF) && ($tempchr2 >= 0x80 && $tempchr2 <= 0xBF))  $size = 2;
 				else
 				{
-					if ($left > 2)  $tempchr3 = ord($data{$x + 2});
+					if ($left > 2)  $tempchr3 = ord($data[$x + 2]);
 					else  return false;
 
 					if ($tempchr3 < 0x80 || $tempchr3 > 0xBF)  return false;
@@ -172,7 +172,7 @@
 					else if ($tempchr == 0xED && ($tempchr2 >= 0x80 && $tempchr2 <= 0x9F))  $size = 3;
 					else
 					{
-						if ($left > 3)  $tempchr4 = ord($data{$x + 3});
+						if ($left > 3)  $tempchr4 = ord($data[$x + 3]);
 						else  return false;
 
 						if ($tempchr4 < 0x80 || $tempchr4 > 0xBF)  return false;

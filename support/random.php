@@ -1,6 +1,6 @@
 <?php
 	// Cryptographically Secure Pseudo-Random String Generator (CSPRSG) and CSPRNG.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	class CSPRNG
 	{
@@ -133,7 +133,7 @@
 				$result = 0;
 				for ($x = 0; $x < $numbytes; $x++)
 				{
-					$result = ($result * 256) + ord($data{$x});
+					$result = ($result * 256) + ord($data[$x]);
 				}
 
 				$result = $result & $mask;
@@ -151,7 +151,7 @@
 				$data = $this->GetInt(0, 61);
 				if ($data === false)  return false;
 
-				$result .= self::$alphanum{$data};
+				$result .= self::$alphanum[$data];
 			}
 
 			return $result;

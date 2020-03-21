@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft Basic PHP String helper/processing functions.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	class Str
 	{
@@ -108,7 +108,7 @@
 			$result = $sy - $uy;
 			for ($ux = 0; $ux < $uy; $ux++)
 			{
-				$result |= ord($userinput{$ux}) ^ ord($secret{$sx});
+				$result |= ord($userinput[$ux]) ^ ord($secret[$sx]);
 				$sx = ($sx + 1) % $sy;
 			}
 

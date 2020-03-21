@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft MySQL/Maria DB database interface.
-	// (C) 2016 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/db.php";
 
@@ -502,7 +502,7 @@
 							$ident = true;
 							$id = $this->ExtractIdentifier($str, $ident);
 							$str = trim($str);
-							if ($str{0} == "(")
+							if ($str[0] == "(")
 							{
 								$str = trim(substr($str, 1));
 
@@ -520,7 +520,7 @@
 									"FULLTEXT INDEX", "FULLTEXT KEY", "FULLTEXT", "SPATIAL INDEX", "SPATIAL KEY", "SPATIAL",
 									"FOREIGN KEY", "CHECK"
 								);
-								while ($str != "" && $str{0} != ")")
+								while ($str != "" && $str[0] != ")")
 								{
 									$id = $this->ExtractIdentifier($str, $ident);
 									if ($ident || !isset($keytypes[strtoupper($id)]))
@@ -535,11 +535,11 @@
 											$type = substr($str, 0, $pos);
 											$str = trim(substr($str, $pos + 1));
 											$typeopts = array();
-											while ($str != "" && $str{0} != ")")
+											while ($str != "" && $str[0] != ")")
 											{
 												$typeopts[] = $this->ExtractAndUnescapeValue($str);
 
-												if ($str != "" && $str{0} == ",")  $str = trim(substr($str, 1));
+												if ($str != "" && $str[0] == ",")  $str = trim(substr($str, 1));
 											}
 
 											$str = trim(substr($str, 1));
@@ -619,7 +619,7 @@
 											}
 										} while ($found);
 
-										while ($str != "" && $str{0} != "," && $str{0} != ")")
+										while ($str != "" && $str[0] != "," && $str[0] != ")")
 										{
 											foreach ($colextras as $extra)
 											{
@@ -674,7 +674,7 @@
 													case "PRIMARY KEY":
 													{
 														$opts2[] = "PRIMARY";
-														while ($str != "" && $str{0} != "(")
+														while ($str != "" && $str[0] != "(")
 														{
 															$id = $this->ExtractIdentifier($str, $ident);
 															if (!$ident && strtoupper($id) == "USING")  $opts2["USING"] = $this->ExtractIdentifier($str, $ident);
@@ -687,7 +687,7 @@
 													case "KEY":
 													{
 														$opts2[] = "KEY";
-														while ($str != "" && $str{0} != "(")
+														while ($str != "" && $str[0] != "(")
 														{
 															$id = $this->ExtractIdentifier($str, $ident);
 															if (!$ident && strtoupper($id) == "USING")  $opts2["USING"] = $this->ExtractIdentifier($str, $ident);
@@ -702,7 +702,7 @@
 													case "UNIQUE":
 													{
 														$opts2[] = "UNIQUE";
-														while ($str != "" && $str{0} != "(")
+														while ($str != "" && $str[0] != "(")
 														{
 															$id = $this->ExtractIdentifier($str, $ident);
 															if (!$ident && strtoupper($id) == "USING")  $opts2["USING"] = $this->ExtractIdentifier($str, $ident);
@@ -717,7 +717,7 @@
 													case "FULLTEXT":
 													{
 														$opts2[] = "FULLTEXT";
-														while ($str != "" && $str{0} != "(")  $opts2["NAME"] = $this->ExtractIdentifier($str, $ident);
+														while ($str != "" && $str[0] != "(")  $opts2["NAME"] = $this->ExtractIdentifier($str, $ident);
 														$opts2[] = $this->ExtractMultipleIdentifiers($str);
 
 														break;
@@ -727,7 +727,7 @@
 													case "SPATIAL":
 													{
 														// GIS is not portable.
-														while ($str != "" && $str{0} != "(")  $this->ExtractIdentifier($str, $ident);
+														while ($str != "" && $str[0] != "(")  $this->ExtractIdentifier($str, $ident);
 														$this->ExtractMultipleIdentifiers($str);
 
 														break;
@@ -735,7 +735,7 @@
 													case "FOREIGN KEY":
 													{
 														$opts2[] = "FOREIGN";
-														while ($str != "" && $str{0} != "(")  $opts2["NAME"] = $this->ExtractIdentifier($str, $ident);
+														while ($str != "" && $str[0] != "(")  $opts2["NAME"] = $this->ExtractIdentifier($str, $ident);
 														$opts2[] = $this->ExtractMultipleIdentifiers($str);
 														$opts2[] = $this->ExtractReferencesInfo($str);
 
@@ -752,7 +752,7 @@
 											}
 										}
 
-										while ($str != "" && $str{0} != "," && $str{0} != ")")
+										while ($str != "" && $str[0] != "," && $str[0] != ")")
 										{
 											$id = $this->ExtractIdentifier($str, $ident);
 											if (!$ident && strtoupper($id) == "USING")  $opts2["USING"] = $this->ExtractIdentifier($str, $ident);
@@ -761,7 +761,7 @@
 										if (isset($opts2[0]))  $opts[2][] = $opts2;
 									}
 
-									if ($str != "" && $str{0} == ",")  $str = trim(substr($str, 1));
+									if ($str != "" && $str[0] == ",")  $str = trim(substr($str, 1));
 
 									$str = trim($str);
 								}
@@ -783,7 +783,7 @@
 										if (strtoupper(substr($str, 0, strlen($extra))) == $extra)
 										{
 											$str = trim(substr($str, strlen($extra)));
-											if ($str{0} == "=")  $str = trim(substr($str, 1));
+											if ($str[0] == "=")  $str = trim(substr($str, 1));
 
 											switch ($extra)
 											{
@@ -846,11 +846,11 @@
 		private function ExtractIdentifier(&$str, &$ident)
 		{
 			$str = trim($str);
-			if ($str{0} == "`")
+			if ($str[0] == "`")
 			{
 				$str = substr($str, 1);
 				$pos = strpos($str, "`");
-				while ($pos !== false && $str{$pos + 1} == "`")  $pos = strpos($str, "`", $pos + 2);
+				while ($pos !== false && $str[$pos + 1] == "`")  $pos = strpos($str, "`", $pos + 2);
 				if ($pos === false)  $pos = strlen($str);
 				$result = str_replace("``", "`", substr($str, 0, $pos));
 				$str = (string)@substr($str, $pos + 1);
@@ -876,26 +876,26 @@
 		{
 			$result = "";
 			$str = trim($str);
-			if ($str{0} == "'")
+			if ($str[0] == "'")
 			{
 				$str = substr($str, 1);
-				while ($str != "" && ($str{0} != "'" || (strlen($str) > 1 && $str{1} == "'")))
+				while ($str != "" && ($str[0] != "'" || (strlen($str) > 1 && $str[1] == "'")))
 				{
-					if ($str{0} == "'" || $str{0} == "\\")  $str = substr($str, 1);
-					$result .= $str{0};
+					if ($str[0] == "'" || $str[0] == "\\")  $str = substr($str, 1);
+					$result .= $str[0];
 
 					$str = substr($str, 1);
 				}
 
 				$str = substr($str, 1);
 			}
-			else if ($str{0} == "\"")
+			else if ($str[0] == "\"")
 			{
 				$str = substr($str, 1);
-				while ($str != "" && ($str{0} != "\"" || (strlen($str) > 1 && $str{1} != "\"")))
+				while ($str != "" && ($str[0] != "\"" || (strlen($str) > 1 && $str[1] != "\"")))
 				{
-					if ($str{0} == "\"" || $str{0} == "\\")  $str = substr($str, 1);
-					$result .= $str{0};
+					if ($str[0] == "\"" || $str[0] == "\\")  $str = substr($str, 1);
+					$result .= $str[0];
 
 					$str = substr($str, 1);
 				}
@@ -961,16 +961,16 @@
 		private function ExtractMultipleIdentifiers(&$str)
 		{
 			$result = array();
-			if ($str{0} == "(")
+			if ($str[0] == "(")
 			{
 				$ident = false;
 				do
 				{
 					$str = substr($str, 1);
 					$result[] = $this->ExtractIdentifier($str, $ident);
-				} while ($str{0} == ",");
+				} while ($str[0] == ",");
 
-				if ($str{0} == ")")  $str = trim(substr($str, 1));
+				if ($str[0] == ")")  $str = trim(substr($str, 1));
 			}
 
 			return $result;
