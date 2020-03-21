@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft command-line functions.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	class CLI
 	{
@@ -333,13 +333,13 @@
 					$result .= " ";
 					if ($x2 === 8)  $result .= " ";
 
-					$tempchr = ord($data{$x});
+					$tempchr = ord($data[$x]);
 					if ($tempchr === 0x09)  $result .= "\\t";
 					else if ($tempchr === 0x0D)  $result .= "\\r";
 					else if ($tempchr === 0x0A)  $result .= "\\n";
 					else if ($tempchr === 0x00)  $result .= "\\0";
 					else if ($tempchr < 32 || $tempchr > 126)  $result .= "  ";
-					else  $result .= " " . $data{$x};
+					else  $result .= " " . $data[$x];
 
 					$x++;
 				}
