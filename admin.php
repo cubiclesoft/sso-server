@@ -1,6 +1,6 @@
 <?php
 	// SSO Server admin.  Based on Admin Pack.
-	// (C) 2015 CubicleSoft.  All Rights Reserved.
+	// (C) 2020 CubicleSoft.  All Rights Reserved.
 
 	define("SSO_FILE", 1);
 	define("SSO_MODE", "admin");
@@ -506,7 +506,7 @@
 
 							if (strlen($opts))
 							{
-								if ($opts{0} === "\"")
+								if ($opts[0] === "\"")
 								{
 									$opts = substr($opts, 1);
 									$pos = strpos($opts, $chr);
