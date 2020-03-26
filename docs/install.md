@@ -328,7 +328,7 @@ Once the SSO client has been successfully installed, it is time to try it out an
 
 ```php
 <?php
-	// These two lines should be executed as soon as possible.
+	// These first four lines should be executed as soon as possible.
 	require_once "client/config.php";
 	require_once SSO_CLIENT_ROOT_PATH . "/index.php";
 
@@ -391,7 +391,7 @@ For those who would rather use plain functions instead of the `SSO_Client` class
 
 ```php
 <?php
-	// These two lines should be executed as soon as possible.
+	// These first four lines should be executed as soon as possible.
 	$sso_removekeys = array("sso_impersonate", "sso_remote_id");
 	require_once "client/config.php";
 	require_once SSO_CLIENT_ROOT_PATH . "/index.php";
