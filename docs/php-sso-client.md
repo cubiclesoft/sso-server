@@ -5,6 +5,50 @@ The [PHP SSO client](https://github.com/cubiclesoft/sso-client-php) is the gold 
 
 A set of global wrapper functions around the PHP SSO client class are also available via 'client/functions.php'.
 
+SSO_Client_Base::SetDebugCallback($callback, $callbackopts = false)
+-------------------------------------------------------------------
+
+Access:  public
+
+Parameters:
+
+* $callback - A valid callback function that takes three parameters:  callback($type, $data, &$opts).
+* $callbackopts - A value to pass as the $opts parameter to the callback.
+
+Returns:  Nothing.
+
+This function sets a debug callback.  The debug callback, when set, is called in various critical locations within the SSO client to aid in diagnosing SSO client/server issues.  The only thing that a callback should do is write the information to a log file in a restricted location (e.g. /tmp).  For maximum effectiveness, call this function right BEFORE calling Init().
+
+Example usage:
+
+```php
+<?php
+	require_once "client/config.php";
+	require_once SSO_CLIENT_ROOT_PATH . "/index.php";
+
+	function WriteSSODebugLogEntry($msg)
+	{
+		$fp = fopen("/tmp/sso_client_debug.log", "ab");
+		fwrite($fp, "[" . date("Y-m-d H:i:s") . "]  " . $msg . "\n");
+		fclose($fp);
+	}
+
+	function RecordSSOClientActivity($type, $data, &$opts)
+	{
+		WriteSSODebugLogEntry($type . (is_string($data) ? " - " . $data : (is_bool($data) ? "" : "\n" . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT))));
+	}
+
+	WriteSSODebugLogEntry("----------------------------------------------");
+	WriteSSODebugLogEntry("Request start:  " . $_SERVER["REQUEST_URI"] . "\n" . json_encode($_COOKIE, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
+
+	$sso_client = new SSO_Client;
+
+	// Replace the IP address with the IP address to record SSO client activity for.
+	if ($_SERVER["REMOTE_ADDR"] === "127.0.0.1")  $sso_client->SetDebugCallback("RecordSSOClientActivity");
+
+	$sso_client->Init(array("sso_impersonate", "sso_remote_id"));
+```
+
 SSO_Client_Base::SendRequest($action, $options, $endpoint, $apikey, $secretkey)
 -------------------------------------------------------------------------------
 
