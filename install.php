@@ -136,7 +136,6 @@
 		$functions = array(
 			"fsockopen" => "Web/e-mail automation/validation functions",
 			"json_encode" => "JSON encoding support functions",
-			"mcrypt_module_open" => "Mcrypt cryptographic support functions",
 			"openssl_open" => "OpenSSL extension support",
 		);
 
