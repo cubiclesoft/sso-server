@@ -12,7 +12,7 @@ OAuth2 is a protocol that lets users sign into many different systems.  Integrat
 
 Before getting into the setup of OAuth2, here are the downsides of the OAuth2 shim:
 
-* No session control management from the SSO server.  Sessions are controlled by the calling application whereas the SSO client always abides by the SSO server session lifetime.
+* No session control management from the SSO server.  Sessions are controlled by the calling application whereas the official SSO clients always abide by the SSO server session lifetime.
 * Very limited tags/permissions support.  Mapped SSO tags are passed back with a `tag:` prefix, but only a custom OAuth2 provider could interpret them and do something.  At that point, integrating the regular SSO client may make more sense.
 * Disabled namespace support.  Namespaces can still be enabled but could result in an infinite login loop since an OAuth2 provider can't detect a loop of this nature.
 * No request continuation.  HTML forms that were filled out will probably have to be filled out again unless the application saved them prior to initiating the login.  Admittedly, this is fairly minor.
@@ -40,7 +40,7 @@ An OAuth2 provider requires the following pieces of information to function:
 * A client secret.  This value is the `OAuth secret` box.
 * Authorize endpoint.  This value is the `OAuth2 URL`.  This URL supports the usual extra parameters (`lang`, `use_namespaces`, etc).
 * Token endpoint.  This value is also the `OAuth2 URL`.  Extra parameters are not supported.
-* User info endpoint.  This value is also the `OAuth2 URL` plus an `access_token` parameter (e.g. `http://localhost/sso/server/oauth2/?access_token=`).
+* User info endpoint.  This value is also the `OAuth2 URL` plus an `access_token` parameter (e.g. `http://localhost/sso/server/oauth2/?access_token=`) OR a Bearer token header (depends on the library).
 
 It is recommended to use an isolated API key for OAuth2.  To avoid getting logged out elsewhere, using a custom namespace for OAuth2 is also recommended.
 

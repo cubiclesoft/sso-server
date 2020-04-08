@@ -96,6 +96,12 @@
 	// Determine what mode to run this script in based on the inputs.
 	try
 	{
+		// Set 'access_token' to be the Bearer token when the header exists.
+		if (isset($_SERVER["HTTP_AUTHORIZATION"]) && is_string($_SERVER["HTTP_AUTHORIZATION"]) && strncasecmp($_SERVER["HTTP_AUTHORIZATION"], "Bearer ", 7) == 0)
+		{
+			$_REQUEST["access_token"] = trim(substr($_SERVER["HTTP_AUTHORIZATION"], 7));
+		}
+
 		if (isset($_REQUEST["access_token"]) && is_string($_REQUEST["access_token"]))
 		{
 			// Step 4:  Return mapped user information.
