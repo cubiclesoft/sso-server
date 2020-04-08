@@ -40,7 +40,7 @@ An OAuth2 provider requires the following pieces of information to function:
 * A client secret.  This value is the `OAuth secret` box.
 * Authorize endpoint.  This value is the `OAuth2 URL`.  This URL supports the usual extra parameters (`lang`, `use_namespaces`, etc).
 * Token endpoint.  This value is also the `OAuth2 URL`.  Extra parameters are not supported.
-* User info endpoint.  This value is also the `OAuth2 URL` plus an `access_token` parameter (e.g. `http://localhost/sso/server/oauth2/?access_token=`) OR a Bearer token header (depends on the library).
+* User info endpoint.  This value is also the `OAuth2 URL` plus an optional `access_token` parameter (e.g. `http://localhost/sso/server/oauth2/?access_token=`).  Some libraries pass a Bearer token Authorization header instead of URL parameters.
 
 It is recommended to use an isolated API key for OAuth2.  To avoid getting logged out elsewhere, using a custom namespace for OAuth2 is also recommended.
 
