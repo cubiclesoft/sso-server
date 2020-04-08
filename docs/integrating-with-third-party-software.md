@@ -44,6 +44,14 @@ An OAuth2 provider requires the following pieces of information to function:
 
 It is recommended to use an isolated API key for OAuth2.  To avoid getting logged out elsewhere, using a custom namespace for OAuth2 is also recommended.
 
+When using the Apache with Bearer tokens, the following should be added to the VirtualHost configuration:
+
+```
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+```
+
+By default, Apache only passes properly formatted Basic Authorization headers to PHP.
+
 Integrating With An Official SSO Client
 ---------------------------------------
 

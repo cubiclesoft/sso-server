@@ -101,6 +101,15 @@
 		{
 			$_REQUEST["access_token"] = trim(substr($_SERVER["HTTP_AUTHORIZATION"], 7));
 		}
+		else if (function_exists("apache_request_headers"))
+		{
+			// Apache doesn't pass non-Basic Authorization headers by default.
+			$headers = apache_request_headers();
+			if (isset($headers["Authorization"]) && is_string($headers["Authorization"]) && strncasecmp($headers["Authorization"], "Bearer ", 7) == 0)
+			{
+				$_REQUEST["access_token"] = trim(substr($headers["Authorization"], 7));
+			}
+		}
 
 		if (isset($_REQUEST["access_token"]) && is_string($_REQUEST["access_token"]))
 		{
