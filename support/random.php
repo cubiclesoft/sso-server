@@ -157,6 +157,57 @@
 			return $result;
 		}
 
+		public function GenerateWordLite(&$freqmap, $len)
+		{
+			$totalc = 0;
+			$totalv = 0;
+			foreach ($freqmap["consonants"] as $chr => $num)  $totalc += $num;
+			foreach ($freqmap["vowels"] as $chr => $num)  $totalv += $num;
+
+			if ($totalc <= 0 || $totalv <= 0)  return false;
+
+			$result = "";
+			for ($x = 0; $x < $len; $x++)
+			{
+				if ($x % 2)
+				{
+					$data = $this->GetInt(0, $totalv - 1);
+					if ($data === false)  return false;
+
+					foreach ($freqmap["vowels"] as $chr => $num)
+					{
+						if ($num > $data)
+						{
+							$result .= $chr;
+
+							break;
+						}
+
+						$data -= $num;
+					}
+				}
+				else
+				{
+					$data = $this->GetInt(0, $totalc - 1);
+					if ($data === false)  return false;
+
+					foreach ($freqmap["consonants"] as $chr => $num)
+					{
+						if ($num > $data)
+						{
+							$result .= $chr;
+
+							break;
+						}
+
+						$data -= $num;
+					}
+				}
+			}
+
+			return $result;
+		}
+
 		public function GenerateWord(&$freqmap, $len, $separator = "-")
 		{
 			$result = "";
@@ -184,7 +235,7 @@
 
 									foreach ($path as $chr => &$info)
 									{
-										if ($chr === "")  continue;
+										if (!is_array($info))  continue;
 
 										if ($info["+"] > $pos)
 										{
@@ -219,7 +270,7 @@
 
 									foreach ($path as $chr => &$info)
 									{
-										if ($chr === "")  continue;
+										if (!is_array($info))  continue;
 
 										if ($info["-"] > $pos)
 										{
