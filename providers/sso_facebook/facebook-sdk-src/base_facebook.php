@@ -170,7 +170,7 @@ abstract class BaseFacebook
     'www'         => 'https://www.facebook.com/',
   );
 
-  public static $API_VER = "v2.2";
+  public static $API_VER = "v8.0";
 
   /**
    * The Application ID.

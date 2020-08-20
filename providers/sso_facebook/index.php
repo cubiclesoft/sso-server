@@ -268,6 +268,8 @@
 			$id = $facebook->getUser();
 			if ($id)
 			{
+				$exceptionmessage = (isset($_REQUEST["error_message"]) && isset($_REQUEST["error_code"]) ? BB_Translate("%s (%s)", BB_Translate($_REQUEST["error_message"]), $_REQUEST["error_code"]) : "");
+
 				try
 				{
 					// Calculate the required fields.
