@@ -240,7 +240,8 @@ There are several modules included with the Generic Login provider:
 
 * Anti-Phishing - When enabled, users select an anti-phishing phrase that appears on the login screen and can optionally be included in e-mails.
 * Two-Factor Authentication via E-mail - Sends an e-mail containing a two-factor authentication code after the user signs in.
-* Two-Factor Authentication via Google Authenticator - Allows the user to use Google Authenticator (or a compatible app) after the user signs in for two-factor authentication.
+* Two-Factor Authentication via Google Authenticator - Allows the user to use Google Authenticator (or a compatible app) for two-factor authentication.
+* Two-Factor Authentication via reverse SMS and a Twilio-compatible service - Allows the user to send a SMS message for two-factor authentication.  Supports Twilio and SignalWire.  This module implements the reverse of traditional SMS 2FA where, instead of receiving a SMS, the user sends a SMS message since doing so [can be much cheaper](https://signalwire.com/pricing/messaging).
 * Password Requirements - Adds algorithms that calculate a password's actual strength and requires a minimum strength for all passwords.  Optionally, passwords can be expired after some set amount of time.  Expired passwords require using an account recovery mechanism.
 * Rate Limiting - Adds rate limits for the Generic Login provider to stop bots and other forms of automation.
 * reCAPTCHA - Adds reCAPTCHA to stop most bots from registering or attempting to login.
