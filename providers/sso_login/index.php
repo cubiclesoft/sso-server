@@ -58,6 +58,11 @@
 		{
 		}
 
+		public function GenerateTwoFactorField($userinfo)
+		{
+			return false;
+		}
+
 		public function SignupCheck(&$result, $ajax, $admin)
 		{
 		}
@@ -2840,6 +2845,10 @@ SSO_Vars = {
 	<div class="sso_main_form_wrap sso_login_recover_form">
 		<div class="sso_main_form_header"><?php echo htmlspecialchars(BB_Translate("Two-Factor Authentication")); ?></div>
 		<form class="sso_main_form" name="sso_login_form" method="post" accept-charset="UTF-8" enctype="multipart/form-data" action="<?php echo htmlspecialchars($sso_target_url . "&sso_login_action=two_factor&sso_v=" . urlencode($_REQUEST["sso_v"])); ?>" autocomplete="off">
+<?php
+					if (!$this->activemodules[$userinfo["two_factor_method"]]->GenerateTwoFactorField($userinfo))
+					{
+?>
 			<div class="sso_main_formitem">
 				<div class="sso_main_formtitle"><?php echo htmlspecialchars(BB_Translate("Enter Two-Factor Authentication Code")); ?></div>
 				<div class="sso_main_formdata"><input class="sso_main_text" type="text" name="<?php echo SSO_FrontendField("two_factor_code"); ?>" /></div>
@@ -2848,6 +2857,9 @@ SSO_Vars = {
 			<script type="text/javascript">
 			jQuery('input.sso_main_text:first').focus();
 			</script>
+<?php
+					}
+?>
 			<div class="sso_main_formsubmit">
 				<input type="submit" name="<?php echo SSO_FrontendField("submit"); ?>" value="<?php echo htmlspecialchars(BB_Translate("Sign in")); ?>" />
 			</div>
