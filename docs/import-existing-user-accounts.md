@@ -1,7 +1,7 @@
 Import Existing User Accounts
 =============================
 
-Let's suppose you already have a large database of users and want to import them into the SSO server.  While this is possible, this is a fairly advanced task and you are somewhat on your own as far as programming goes.  There is some code later on in this section to give you an idea of how to proceed and the forums can be helpful for getting on the right track, but you'll still ultimately have to do your own thing.
+Let's suppose you already have a large database of users and want to import them into the SSO server.  While this is possible, this is a fairly advanced task and you are somewhat on your own as far as programming goes.  There is some code later on in this section to give you an idea of how to proceed but you'll still ultimately have to do your own thing.
 
 There are several approaches you can take when dealing with the issue of importing users.  You'll have to first decide which one is right for your situation.
 

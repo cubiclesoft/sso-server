@@ -13,7 +13,7 @@ Major version upgrades take time to complete and can be a little nerve-wracking.
 The upgrade procedure is as follows:
 
 * Back up your database in case something goes horribly wrong.
-* Read the official forum post carefully to understand the impact.
+* Read the official post carefully to understand the impact.
 * Download the latest SSO Server/Client package, extract, and upload the 'server' files to the correct locations.  It is safe to overwrite existing files.
 * You may wish to write an 'upgrade_hook.php' file to restrict how and where it may be run (e.g. by IP address).  For medium-sized databases, the recommendation is to restrict the upgrade tool to only run from the command-line.
 * Run 'upgrade.php' either via a web browser or the command-line.  The command-line is generally more reliable because scripts can't get killed off by the web server for running too long.
@@ -21,7 +21,7 @@ The upgrade procedure is as follows:
 * Upload the 'client' files to every client installation's directory.  Again, it is safe to overwrite existing files.
 * Test each client to make sure nothing broke during the upgrade.
 
-And that's it.  If you encounter any problems upgrading, visit the [forums](http://barebonescms.com/forums/forumdisplay.php?fid=2).
+And that's it.  If you encounter any problems upgrading, open an issue on the issue tracker.
 
 Minor Version Upgrades
 ----------------------
@@ -33,4 +33,4 @@ Minor version upgrades take less time and planning to execute than major version
 * Upload the 'client' files to every client installation's directory that needs access to new features/changes.  Again, it is safe to overwrite existing files.
 * Test each client to make sure nothing broke during the upgrade.
 
-And that's it.  If you encounter any problems upgrading, visit the [forums](http://barebonescms.com/forums/forumdisplay.php?fid=2).
+And that's it.  If you encounter any problems upgrading, open an issue on the issue tracker.

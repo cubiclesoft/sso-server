@@ -72,4 +72,4 @@ Other plugins for third-party software products will have a similar sort of appr
 
 If the software being integrated with is already in use, then the next step after creating/installing a plugin might be to import those user accounts into the SSO server.  See the documentation on [importing existing user accounts](https://github.com/cubiclesoft/sso-server/blob/master/docs/import-existing-user-accounts.md).  If the existing login system relies, for example, on e-mail address as a unique key in the users table, the plugin could be authored to take advantage of that fact and skip most of difficult bits of account migration for most users with the main exception being admin users.
 
-If you don't know how to write a plugin to integrate with a specific third-party software product, you can try asking about it on the forums.
+If you don't know how to write a plugin to integrate with a specific third-party software product, you can try asking.
