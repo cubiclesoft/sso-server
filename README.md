@@ -7,7 +7,7 @@ This is Barebones SSO Server.  An awesome, scalable, secure, flexible login syst
 
 ![Example SSO server login screen](https://user-images.githubusercontent.com/1432111/39400265-0eab58a4-4ae2-11e8-88a8-b712df213468.png)
 
-[![Donate](https://cubiclesoft.com/res/donate-shield.png)](https://cubiclesoft.com/donate/)
+[![Donate](https://cubiclesoft.com/res/donate-shield.png)](https://cubiclesoft.com/donate/) [![Discord](https://img.shields.io/discord/777282089980526602?label=chat&logo=discord)](https://cubiclesoft.com/product-support/github/)
 
 Features
 --------
