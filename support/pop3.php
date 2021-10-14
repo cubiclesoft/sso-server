@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP POP3 class.
-	// (C) 2018 CubicleSoft.  All Rights Reserved.
+	// (C) 2021 CubicleSoft.  All Rights Reserved.
 
 	class POP3
 	{
@@ -57,6 +57,13 @@
 				else if (file_exists(str_replace("\\", "/", dirname(__FILE__)) . "/cacert.pem"))  $options[$key]["cafile"] = str_replace("\\", "/", dirname(__FILE__)) . "/cacert.pem";
 			}
 
+			if (isset($options[$key]["auto_peer_name"]))
+			{
+				unset($options[$key]["auto_peer_name"]);
+
+				$options[$key]["peer_name"] = $host;
+			}
+
 			if (isset($options[$key]["auto_cn_match"]))
 			{
 				unset($options[$key]["auto_cn_match"]);
@@ -73,11 +80,27 @@
 			}
 		}
 
+		protected static function GetIDNAHost($host)
+		{
+			$y = strlen($host);
+			for ($x = 0; $x < $y && ord($host[$x]) <= 0x7F; $x++);
+
+			if ($x < $y)
+			{
+				if (!class_exists("UTFUtils", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf_utils.php";
+
+				$host2 = UTFUtils::ConvertToPunycode($host);
+				if ($host2 !== false)  $host = $host2;
+			}
+
+			return $host;
+		}
+
 		public function Connect($username, $password, $options = array())
 		{
 			if ($this->fp !== false)  $this->Disconnect();
 
-			$server = trim(isset($options["server"]) ? $options["server"] : "localhost");
+			$server = (isset($options["server"]) ? self::GetIDNAHost(trim($options["server"])) : "localhost");
 			if ($server == "")  return array("success" => false, "error" => self::POP3_Translate("Invalid server specified."), "errorcode" => "invalid_server");
 			$secure = (isset($options["secure"]) ? $options["secure"] : false);
 			$protocol = ($secure ? (isset($options["protocol"]) ? strtolower($options["protocol"]) : "ssl") : "tcp");
@@ -96,8 +119,12 @@
 				if (isset($options["source_ip"]))  $context["socket"] = array("bindto" => $options["source_ip"] . ":0");
 				if ($secure)
 				{
-					if (!isset($options["sslopts"]) || !is_array($options["sslopts"]))  $options["sslopts"] = self::GetSafeSSLOpts();
-					self::ProcessSSLOptions($options, "sslopts", $server);
+					if (!isset($options["sslopts"]) || !is_array($options["sslopts"]))
+					{
+						$options["sslopts"] = self::GetSafeSSLOpts();
+						$options["sslopts"]["auto_peer_name"] = true;
+					}
+					self::ProcessSSLOptions($options, "sslopts", (isset($options["sslhostname"]) ? self::GetIDNAHost($options["sslhostname"]) : $server));
 					foreach ($options["sslopts"] as $key => $val)  @stream_context_set_option($context, "ssl", $key, $val);
 				}
 				$this->fp = @stream_socket_client($protocol . "://" . $server . ":" . $port, $errornum, $errorstr, $options["connecttimeout"], STREAM_CLIENT_CONNECT, $context);
