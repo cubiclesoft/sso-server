@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft MySQL/Maria DB lightweight database interface.
-	// (C) 2016 CubicleSoft.  All Rights Reserved.
+	// (C) 2021 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/db.php";
 
@@ -21,7 +21,7 @@
 			parent::Connect($dsn, $username, $password, $options);
 
 			// Set Unicode support.
-			$this->Query("SET", "NAMES 'utf8'");
+			$this->Query("SET", "NAMES 'utf8mb4'");
 		}
 
 		public function GetInsertID($name = null)

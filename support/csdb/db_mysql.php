@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft MySQL/Maria DB database interface.
-	// (C) 2020 CubicleSoft.  All Rights Reserved.
+	// (C) 2021 CubicleSoft.  All Rights Reserved.
 
 	if (!class_exists("CSDB", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/db.php";
 
@@ -21,7 +21,7 @@
 			parent::Connect($dsn, $username, $password, $options);
 
 			// Set Unicode support.
-			$this->Query("SET", "NAMES 'utf8'");
+			$this->Query("SET", "NAMES 'utf8mb4'");
 		}
 
 		public function GetVersion()
@@ -116,7 +116,7 @@
 					$master = true;
 
 					$sql = "CREATE DATABASE " . $this->QuoteIdentifier($queryinfo[0]);
-					$sql .= " CHARACTER SET " . (isset($queryinfo["CHARACTER SET"]) ? $queryinfo["CHARACTER SET"] : "utf8");
+					$sql .= " CHARACTER SET " . (isset($queryinfo["CHARACTER SET"]) ? $queryinfo["CHARACTER SET"] : "utf8mb4");
 					if (isset($queryinfo["COLLATE"]))  $sql .= " COLLATE " . $queryinfo["COLLATE"];
 
 					return array("success" => true);
@@ -138,7 +138,7 @@
 						"PROCESSKEYS" => true,
 						"POSTCREATE" => array("CHARACTER SET" => "string", "COLLATE" => "string")
 					);
-					if (!isset($queryinfo["CHARACTER SET"]))  $queryinfo["CHARACTER SET"] = "utf8";
+					if (!isset($queryinfo["CHARACTER SET"]))  $queryinfo["CHARACTER SET"] = "utf8mb4";
 
 					return $this->ProcessCREATE_TABLE($master, $sql, $opts, $queryinfo, $args, $subquery, $supported);
 				}
