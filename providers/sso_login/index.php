@@ -1511,6 +1511,8 @@
 
 			if ($sso_settings["sso_login"]["password_mode"] == "password_hash_bcrypt" && function_exists("password_verify"))
 			{
+				if (strlen($data) > 72)  $data = hash("sha256", $data, true);
+
 				$result = @password_verify($data, pack("H*", $hash));
 				if ($result === false)  return false;
 			}
