@@ -272,13 +272,17 @@
 						$userinfo = array();
 						@ldap_set_option($ldap, LDAP_OPT_PROTOCOL_VERSION, 3);
 						$result = @ldap_bind($ldap, $dn, $password);
-						if ($result === false && ldap_errno($ldap))  $extra = ldap_error($ldap);
+						if ($result === false)
+						{
+							if (ldap_errno($ldap))  $extra = ldap_error($ldap);
+							else  $extra = "";
+						}
 						else
 						{
 							$extra = "";
 
 							$result = @ldap_read($ldap, $dn, "objectClass=*");
-							if (!is_resource($result))
+							if ($result === false)
 							{
 								$extra = ldap_error($ldap);
 								$result = false;

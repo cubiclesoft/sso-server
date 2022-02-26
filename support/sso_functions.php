@@ -990,8 +990,8 @@
 		{
 			if (isset($result[$key]))
 			{
-				$key2 = UTF8::MakeValid($key);
-				$val = UTF8::MakeValid($result[$key]);
+				$key2 = UTF8::MakeValid((string)$key);
+				$val = UTF8::MakeValid((string)$result[$key]);
 				unset($result[$key]);
 
 				if ($encrypted)  $result[$key2] = $val;
