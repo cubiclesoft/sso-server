@@ -1,13 +1,15 @@
 <?php
 	// CubicleSoft PHP UTF8 (Unicode) functions.
-	// (C) 2020 CubicleSoft.  All Rights Reserved.
+	// (C) 2021 CubicleSoft.  All Rights Reserved.
 
 	class UTF8
 	{
 		// Removes invalid characters from the data string.
 		// http://www.w3.org/International/questions/qa-forms-utf-8
-		public static function MakeValid($data)
+		public static function MakeValidStream(&$prefix, &$data, $open)
 		{
+			if ($prefix !== "")  $data = $prefix . $data;
+
 			$result = "";
 			$x = 0;
 			$y = strlen($data);
@@ -87,11 +89,21 @@
 						$result .= chr($tempchr4);
 						$x += 4;
 					}
+					else if ($open && $x + 4 > $y)  break;
 					else  $x++;
 				}
 			}
 
+			$prefix = substr($data, $x);
+
 			return $result;
+		}
+
+		public static function MakeValid($data)
+		{
+			$prefix = "";
+
+			return self::MakeValidStream($prefix, $data, false);
 		}
 
 		public static function IsValid($data)
