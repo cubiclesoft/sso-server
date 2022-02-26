@@ -103,6 +103,8 @@
 		{
 			$prefix = "";
 
+			if (!is_string($data))  $data = (string)$data;
+
 			return self::MakeValidStream($prefix, $data, false);
 		}
 
