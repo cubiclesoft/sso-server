@@ -655,18 +655,18 @@
 						{
 							if ($prevchr == "\\")
 							{
-								$email .= $lastchar . $prevchr;
+								$email .= $lastchr . $prevchr;
 								$data = substr($data, 0, -2);
 							}
 							else if ($lastchr == "\"")
 							{
-								$email .= $lastchar;
+								$email .= $lastchr;
 								$data = trim(substr($data, 0, -1));
 								$state = "localstart";
 							}
 							else
 							{
-								$email .= $lastchar;
+								$email .= $lastchr;
 								$data = substr($data, 0, -1);
 							}
 
@@ -722,7 +722,7 @@
 						{
 							if ($prevchr == "\\")
 							{
-								$name .= $lastchar . $prevchr;
+								$name .= $lastchr . $prevchr;
 								$data = substr($data, 0, -2);
 							}
 							else if ($lastchr == "\"")
@@ -986,8 +986,8 @@
 					if ($state["debug"])  $data2 = fread($state["fp"], 1);
 					else  $data2 = @fread($state["fp"], 1);
 
-					if ($data2 === false)  return array("success" => false, "error" => self::SMTPTranslate("Underlying stream encountered a read error."), "errorcode" => "stream_read_error");
-					if ($data2 === "" && feof($state["fp"]))  return array("success" => false, "error" => self::SMTPTranslate("Remote peer disconnected."), "errorcode" => "peer_disconnected");
+					if ($data2 === false)  return array("success" => false, "error" => self::SMTP_Translate("Underlying stream encountered a read error."), "errorcode" => "stream_read_error");
+					if ($data2 === "" && feof($state["fp"]))  return array("success" => false, "error" => self::SMTP_Translate("Remote peer disconnected."), "errorcode" => "peer_disconnected");
 
 					if ($data2 !== "")  $state["nextread"] .= $data2;
 
@@ -1101,7 +1101,7 @@
 						if ($state["debug"])  $result = stream_socket_enable_crypto($state["fp"], true, STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT);
 						else  $result = @stream_socket_enable_crypto($state["fp"], true, STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT | STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT);
 
-						if ($result === false)  return self::CleanupErrorState($state, array("success" => false, "error" => self::SMTPTranslate("A stream_socket_enable_crypto() failure occurred.  Most likely cause:  Connection failure or incompatible crypto setup."), "errorcode" => "stream_socket_enable_crypto_failed"));
+						if ($result === false)  return self::CleanupErrorState($state, array("success" => false, "error" => self::SMTP_Translate("A stream_socket_enable_crypto() failure occurred.  Most likely cause:  Connection failure or incompatible crypto setup."), "errorcode" => "stream_socket_enable_crypto_failed"));
 						else if ($result === true)  $state["state"] = "connection_ready";
 
 						break;
@@ -1117,8 +1117,8 @@
 							{
 								if (isset($state["options"]["peer_cert_callback"]) && is_callable($state["options"]["peer_cert_callback"]))
 								{
-									if (isset($contextopts["ssl"]["peer_certificate"]) && !call_user_func_array($state["options"]["peer_cert_callback"], array("peercert", $contextopts["ssl"]["peer_certificate"], &$state["options"]["peer_cert_callback_opts"])))  return array("success" => false, "error" => self::SMTPTranslate("Peer certificate callback returned with a failure condition."), "errorcode" => "peer_cert_callback");
-									if (isset($contextopts["ssl"]["peer_certificate_chain"]) && !call_user_func_array($state["options"]["peer_cert_callback"], array("peercertchain", $contextopts["ssl"]["peer_certificate_chain"], &$state["options"]["peer_cert_callback_opts"])))  return array("success" => false, "error" => self::SMTPTranslate("Peer certificate callback returned with a failure condition."), "errorcode" => "peer_cert_callback");
+									if (isset($contextopts["ssl"]["peer_certificate"]) && !call_user_func_array($state["options"]["peer_cert_callback"], array("peercert", $contextopts["ssl"]["peer_certificate"], &$state["options"]["peer_cert_callback_opts"])))  return array("success" => false, "error" => self::SMTP_Translate("Peer certificate callback returned with a failure condition."), "errorcode" => "peer_cert_callback");
+									if (isset($contextopts["ssl"]["peer_certificate_chain"]) && !call_user_func_array($state["options"]["peer_cert_callback"], array("peercertchain", $contextopts["ssl"]["peer_certificate_chain"], &$state["options"]["peer_cert_callback_opts"])))  return array("success" => false, "error" => self::SMTP_Translate("Peer certificate callback returned with a failure condition."), "errorcode" => "peer_cert_callback");
 								}
 							}
 						}

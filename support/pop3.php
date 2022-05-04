@@ -1,10 +1,10 @@
 <?php
 	// CubicleSoft PHP POP3 class.
-	// (C) 2021 CubicleSoft.  All Rights Reserved.
+	// (C) 2022 CubicleSoft.  All Rights Reserved.
 
 	class POP3
 	{
-		private $fp, $debug;
+		private $fp, $messagelist, $debug;
 
 		public function __construct()
 		{
