@@ -265,7 +265,7 @@
 					$token2 = $sso_rng->GenerateString();
 					$salt = $sso_rng->GenerateString();
 					$data = $salt . ":" . $token2;
-					$passwordinfo = sso_login::HashPasswordInfo($data);
+					$passwordinfo = sso_login::HashPasswordInfo($data, "password_hash_bcrypt", 1024);
 					if ($passwordinfo["success"])
 					{
 						// Add temporary session data to user information.

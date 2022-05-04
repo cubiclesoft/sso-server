@@ -300,7 +300,7 @@
 						else if (isset($profile["first_name"]) && isset($profile["last_name"]))  $profile["username"] = $profile["first_name"] . @substr($profile["last_name"], 0, 1);
 						else if (isset($profile["name"]))
 						{
-							$name = explode(" ", $name);
+							$name = explode(" ", $profile["name"]);
 							$profile["username"] = $name[0] . @substr($name[count($name) - 1], 0, 1);
 						}
 						else  $profile["username"] = (string)$id;
@@ -377,7 +377,7 @@
 						// Convert specialized fields into strings.
 						if (isset($profile["age_range"]))
 						{
-							$profile["age_range"] = trim($item->min . "-" . $item->max);
+							foreach ($profile["age_range"] as $item)  $profile["age_range"] = trim($item->min . "-" . $item->max);
 						}
 						if (isset($profile["education"]))
 						{

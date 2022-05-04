@@ -126,7 +126,7 @@
 		else
 		{
 			$info = explode(":", $sso_apikey_info["key"]);
-			if (count($info) < 3)  return array("success" => false, "error" => SSO_Translate("Invalid secret key."));
+			if (count($info) < 3)  SSO_EndpointError("Invalid secret key.");
 
 			$sso_apikey_info["keyinfo"]["mode"] = $info[0];
 			$sso_apikey_info["keyinfo"]["key"] = pack("H*", $info[1]);

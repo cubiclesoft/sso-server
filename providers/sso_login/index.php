@@ -2299,7 +2299,7 @@ SSO_Vars = {
 
 				// Two-factor authentication dropdown.
 				$outputmap2 = array();
-				$method = SSO_FrontendFieldValue("update_two_factor_method", (isset($updateinfo["two_factor_method"]) ? $updateinfo["two_factor_method"] : ""));
+				$method = SSO_FrontendFieldValue("update_two_factor_method", (isset($userinfo["two_factor_method"]) ? $userinfo["two_factor_method"] : ""));
 				foreach ($this->activemodules as $key => &$instance)
 				{
 					$name = $instance->GetTwoFactorName();
