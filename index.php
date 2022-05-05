@@ -147,7 +147,7 @@ jQuery(function() {
 	if (SSO_USE_HTTPS && !BB_IsSSLRequest())  SSO_DisplayError("SSL expected.  Most likely cause:  Bad server configuration.");
 
 	if (!isset($_REQUEST["sso_id"]) && isset($_COOKIE["sso_server_id"]))  $_REQUEST["sso_id"] = $_COOKIE["sso_server_id"];
-	if (!isset($_REQUEST["sso_id"]))  SSO_DisplayError("Session ID expected.  Most likely causes:  Pressing the back button, clicking a URL that launched a new web browser, using a non-offical client, or a bad or incorrectly configured web proxy.  If you clicked a URL in an e-mail, it opened a new web browser, and you got this error, then try this solution:  Copy the URL and paste it into the address bar of the other web browser.  Sorry for the inconvenience, but this behavior helps keep your account secure from hackers.");
+	if (!isset($_REQUEST["sso_id"]))  SSO_DisplayError("Session ID expected.  Most likely causes:  Pressing the back button, clicking a URL that launched a new web browser, using a non-official client, or a bad or incorrectly configured web proxy.  If you clicked a URL in an e-mail, it opened a new web browser, and you got this error, then try this solution:  Copy the URL and paste it into the address bar of the other web browser.  Sorry for the inconvenience, but this behavior helps keep your account secure from hackers.");
 
 	// Migrate 'sso_id' to a cookie.
 	if (!isset($_COOKIE["sso_server_id"]) || $_COOKIE["sso_server_id"] != $_REQUEST["sso_id"])
