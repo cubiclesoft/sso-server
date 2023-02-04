@@ -1,6 +1,6 @@
 <?php
 	// CubicleSoft PHP SMTP e-mail functions.
-	// (C) 2021 CubicleSoft.  All Rights Reserved.
+	// (C) 2023 CubicleSoft.  All Rights Reserved.
 
 	// Load dependencies.
 	if (!class_exists("UTF8", false))  require_once str_replace("\\", "/", dirname(__FILE__)) . "/utf8.php";
@@ -1553,7 +1553,7 @@
 		{
 			if (TagFilter::GetParentPos($stack, "pre") === false)
 			{
-				$content = preg_replace('/\s{2,}/', "  ", str_replace(array("\r\n", "\n", "\r", "\t"), " ", $content));
+				$content = preg_replace('/\s{2,}/', "  ", str_replace(array("\r\n", "\n", "\r", "\t"), " ", htmlspecialchars_decode($content)));
 				if ($result !== "" && substr($result, -1) === "\n")  $content = trim($content);
 			}
 		}
